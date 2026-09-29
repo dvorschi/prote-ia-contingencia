@@ -269,6 +269,21 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;font-size:1
 .hdr-spacer{flex:1}
 #dateDisplay{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:500;color:var(--text-muted);letter-spacing:.03em}
 #clock{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:600;color:var(--text-dim);letter-spacing:.04em}
+/* v120.51 (dono 29/09) — faixa de fusos logo abaixo do #hdr, nos 2 perfis (Gestão e Operação).
+   Não cabe DENTRO do #hdr: em 1366px o título já sai truncado (medido). Faixa própria de 26px no
+   fluxo de #app (flex column) — o conteúdo abaixo encolhe sozinho. Horas por Intl.DateTimeFormat
+   com timeZone IANA (nunca o fuso do navegador); diferença para Brasília calculada, não fixa. */
+:root{--fuso-h:26px}
+#fusoStrip{height:var(--fuso-h);flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:0;
+  padding:0 16px;background:var(--bg-panel);border-bottom:1px solid var(--border-s);overflow-x:auto;
+  scrollbar-width:none;white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text-muted)}
+#fusoStrip::-webkit-scrollbar{display:none}
+#fusoStrip .fz{display:inline-flex;align-items:baseline;gap:6px;padding:0 14px}
+#fusoStrip .fz+.fz{border-left:1px solid var(--border-s)}
+#fusoStrip .fz-uf{font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+#fusoStrip .fz-h{font-weight:700;color:var(--text)}
+#fusoStrip .fz-dif{font-size:12px}
+#fusoStrip .fz-bsb .fz-uf{color:var(--text)}
 .hdr-btn{display:flex;align-items:center;justify-content:center;width:34px;height:34px;border:1px solid var(--border-s);border-radius:8px;background:var(--bg-panel);cursor:pointer;color:var(--text-dim);transition:all .15s;font-size:17px}
 .hdr-btn:hover{border-color:var(--claro);color:var(--claro)}
 .hdr-btn.active{background:var(--claro);border-color:var(--claro);color:#fff}
@@ -2360,6 +2375,9 @@ button,.fc,.fc-sort,.feed-card,.ss-state,.hdr-btn,.ticker-item,.ma-btn,.modal-cl
   .hdr-title-center{font-size:16px;letter-spacing:.03em}
   #dateDisplay{display:none}
   #clock{font-size:11px;letter-spacing:.03em}
+  #fusoStrip{justify-content:flex-start;font-size:11px;padding:0 8px}
+  #fusoStrip .fz{gap:4px;padding:0 8px}
+  #fusoStrip .fz-dif{font-size:10px}
   .isp-badge{font-size:10px;padding:3px 7px;gap:3px}
 
   /* ── Mapa: aproveita espaço do header menor ──
@@ -3973,7 +3991,7 @@ body.noc-eleicoes #apuracaoBadge.elx-camada-card.active .elx-camada-check{border
      popover do sininho (.elx-crit-pop, z-index:9800) já eram MUITO mais altos que 1050 — esses
      dois já ficavam por cima do painel antes desta mudança, sem precisar de ajuste.
      bottom:0 mantido — o painel continua ocupando o resto da altura da tela. */
-  position:fixed;top:66px;right:-460px;bottom:0;width:420px;
+  position:fixed;top:calc(66px + var(--fuso-h));right:-460px;bottom:0;width:420px; /* v120.51: + faixa de fusos */
   background:var(--bg-card);border-left:1px solid var(--border-s);
   /* z-index:1050 (não 700, como #intelPanel) — achado de QA nesta entrega, mesma causa raiz já
      documentada pro `.rr-report-drawer` (linha ~3039, 2026-08-04): o mapa tem DOIS controles de
@@ -5387,7 +5405,7 @@ body.copiloto-aprendizado-on #elxAprendizadoBtn{display:flex}
   </span>
   <div class="hdr-spacer"></div>
   <span id="dateDisplay">--/--/----</span>
-  <span id="clock">--:--:--</span>
+  <span id="clock" title="Horário de Brasília">--:--:--</span>
   <!-- Botão ISP comentado a pedido do usuário (2026-07-24) — função mantida
        intacta no código (toggleIspDrawer(), #ispDrawer, updateIspBadge(),
        ambos já null-safe se o botão sumir do DOM) pra reativação futura,
@@ -5434,6 +5452,14 @@ body.copiloto-aprendizado-on #elxAprendizadoBtn{display:flex}
     <span id="socialCounter" class="social-badge-txt">—</span>
   </button>
 </header>
+
+<!-- v120.51 — faixa de fusos (preenchida por _fusoRender(), chamada pelo tickClock) -->
+<div id="fusoStrip" role="group" aria-label="Horário de Brasília e dos estados com fuso diferente">
+  <span class="fz fz-bsb"><span class="fz-uf">Brasília</span> <span class="fz-h" data-fz="America/Sao_Paulo">--:--</span></span>
+  <span class="fz" title="Amazonas (exceto sudoeste), Roraima, Rondônia, Mato Grosso e Mato Grosso do Sul"><span class="fz-uf">AM/RR/RO/MT/MS</span> <span class="fz-h" data-fz="America/Manaus">--:--</span> <span class="fz-dif" data-fzdif="America/Manaus"></span></span>
+  <span class="fz" title="Acre e 13 municípios do sudoeste do Amazonas"><span class="fz-uf">AC</span> <span class="fz-h" data-fz="America/Rio_Branco">--:--</span> <span class="fz-dif" data-fzdif="America/Rio_Branco"></span></span>
+  <span class="fz" title="Arquipélago de Fernando de Noronha (PE)"><span class="fz-uf">F. Noronha</span> <span class="fz-h" data-fz="America/Noronha">--:--</span> <span class="fz-dif" data-fzdif="America/Noronha"></span></span>
+</div>
 
 <!-- TICKER -->
 <div id="ticker">
@@ -9848,11 +9874,33 @@ function toggleCableLayer(){
 }
 
 /* ───────────── CLOCK + DATE ───────────── */
+/* v120.51 — relógio e data do #hdr presos em America/Sao_Paulo (antes seguiam o fuso do navegador:
+   um operador em Manaus via a hora de Manaus sem rótulo). + faixa de fusos (#fusoStrip). */
+const _FUSO_BSB='America/Sao_Paulo';
+const _fusoFmt={};
+function _fusoMin(tz,d){ // minutos do dia no fuso tz (para calcular a diferença sem offset fixo)
+  const f=_fusoFmt[tz]||(_fusoFmt[tz]=new Intl.DateTimeFormat('pt-BR',{timeZone:tz,hour:'2-digit',minute:'2-digit',hour12:false}));
+  const p=Object.fromEntries(f.formatToParts(d).map(x=>[x.type,x.value]));
+  return {txt:(p.hour==='24'?'00':p.hour)+':'+p.minute,min:(+p.hour%24)*60+(+p.minute)};
+}
+let _fusoUltimo='';
+function _fusoRender(now){
+  const bar=document.getElementById('fusoStrip'); if(!bar)return;
+  const bsb=_fusoMin(_FUSO_BSB,now);
+  if(bsb.txt===_fusoUltimo)return; _fusoUltimo=bsb.txt; // só redesenha quando vira o minuto
+  bar.querySelectorAll('[data-fz]').forEach(el=>{try{el.textContent=_fusoMin(el.dataset.fz,now).txt;}catch(e){el.textContent='--:--';}});
+  bar.querySelectorAll('[data-fzdif]').forEach(el=>{
+    try{let d=_fusoMin(el.dataset.fzdif,now).min-bsb.min; if(d>720)d-=1440; if(d<-720)d+=1440;
+      const h=d/60; el.textContent=d===0?'':'('+(h>0?'+':'−')+Math.abs(h).toLocaleString('pt-BR')+'h)';
+    }catch(e){el.textContent='';}
+  });
+}
 function tickClock(){
   const now=new Date();
-  document.getElementById('clock').textContent=now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  document.getElementById('clock').textContent=now.toLocaleTimeString('pt-BR',{timeZone:_FUSO_BSB,hour:'2-digit',minute:'2-digit',second:'2-digit'});
   const dd=document.getElementById('dateDisplay');
-  if(dd)dd.textContent=now.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric'}).replace(',','');
+  if(dd)dd.textContent=now.toLocaleDateString('pt-BR',{timeZone:_FUSO_BSB,weekday:'short',day:'2-digit',month:'2-digit',year:'numeric'}).replace(',','');
+  _fusoRender(now);
 }
 setInterval(tickClock,1000);tickClock();
 
