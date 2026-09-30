@@ -1830,6 +1830,33 @@ body.risk-mode #monLegend{top:auto;bottom:8px}
 /* Faixa "Filtro do Agente: N ocorrências ✕" — topo da Fila (Operação, #filaAiFiltroFaixa) e do
    Feed (Gestão, #feedAiFiltroFaixa). Mesmo teal, mesma disciplina de #elxAlertaResumoOperacao/
    Gestao (display:none por padrão, JS liga via _aiFiltroSincronizarFaixa). */
+/* v120.52 (dono 30/09) — "Mostrar no mapa" (Gestão): cartão flutuante do foco no mapa + faixa do
+   Feed. Tokens do tema; z-index 450 (acima da legenda 400, abaixo do zoom customizado 900). */
+.elx-foco-card{position:absolute;top:12px;left:12px;z-index:450;max-width:min(420px,calc(100% - 90px));
+  background:var(--bg-card);border:1px solid var(--border-s);border-radius:10px;box-shadow:0 6px 22px rgba(0,0,0,.35);
+  padding:10px 12px;display:none;flex-direction:column;gap:6px;font-size:12.5px;color:var(--text)}
+.elx-foco-card.aberto{display:flex}
+.elx-foco-topo{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted)}
+.elx-foco-sev{padding:1px 7px;border-radius:5px;color:#fff;font-size:11px;letter-spacing:.02em}
+.elx-foco-titulo{font-weight:700;font-size:13px;line-height:1.3;color:var(--text)}
+.elx-foco-legenda{font-size:11.5px;color:var(--text-muted)}
+.elx-foco-acoes{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
+.elx-foco-acoes button{font:inherit;font-size:12px;font-weight:600;padding:4px 10px;border-radius:7px;cursor:pointer;
+  border:1px solid var(--border-s);background:var(--bg-panel);color:var(--text)}
+.elx-foco-acoes button:hover{border-color:var(--claro);color:var(--claro)}
+.elx-foco-card .elx-prox-alerta{margin:0}
+.elx-ai-filtro-faixa.elx-foco-faixa{background:rgba(59,130,246,.12);border-bottom-color:rgba(59,130,246,.40)} /* QA1 P3-1: vence a cor da faixa do Agente */
+.elx-foco-faixa .elx-foco-faixa-acoes{display:flex;gap:6px;flex-shrink:0}
+.elx-foco-faixa button{font:inherit;font-size:12px;font-weight:600;padding:2px 9px;border-radius:6px;cursor:pointer;
+  border:1px solid var(--border-s);background:var(--bg-panel);color:var(--text)}
+.ma-btn.ma-map{background:rgba(59,130,246,.14);border:1px solid rgba(59,130,246,.55);color:var(--text)}
+.ma-btn.ma-map:disabled{opacity:.45;cursor:not-allowed}
+.ma-btn[hidden]{display:none!important}
+#modalProx:empty{display:none}
+body.perfil-operacional #modalProx{display:none} /* QA1: Operação não muda */
+body.elx-foco-ativo #respChegadaCard{top:auto!important;bottom:12px!important} /* QA3: não cobre o cartão do foco (ALTO/MÉDIO chegando) */
+body.elx-foco-ativo #respChegadaSelo{display:none!important} /* QA1: selo de "Ver só as novas" não cobre o cartão (suspenso durante o foco) */
+#modalProx{margin:-4px 0 10px}
 .elx-ai-filtro-faixa{align-items:center;justify-content:space-between;gap:8px;padding:6px 12px;background:rgba(45,212,191,.10);border-bottom:1px solid rgba(45,212,191,.35);font-size:12.5px;font-weight:600;color:var(--text);flex-shrink:0}
 .elx-ai-filtro-limpar{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:13px;padding:2px 6px;line-height:1}
 .elx-ai-filtro-limpar:hover{color:var(--text)}
@@ -5750,6 +5777,8 @@ body.copiloto-aprendizado-on #elxAprendizadoBtn{display:flex}
       <button onclick="S.map.setView([-15.5,-50.5],4,{animate:true,duration:0.9})" title="Voltar à visão inicial do mapa" style="width:32px;height:32px;margin-top:8px;background:rgba(10,14,25,.88);border:1px solid rgba(255,255,255,.16);color:#e2e8f0;font-size:16px;font-weight:400;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;backdrop-filter:blur(8px)">🔒</button>
     </div>
     <div id="brazil-map"></div>
+    <!-- v120.52 — cartão do "Mostrar no mapa" (preenchido por elxFocoMapaAbrir) -->
+    <div class="elx-foco-card" id="elxFocoCard" role="region" aria-label="Ocorrência em foco no mapa"></div>
     <!-- Legenda flutuante (v109) — contadores reais, ver updateMapLegend() -->
     <div class="map-legend" id="mapLegend">
       <span class="ml-item"><span class="ml-dot ml-live"></span>AO VIVO</span>
@@ -6254,6 +6283,11 @@ body.copiloto-aprendizado-on #elxAprendizadoBtn{display:flex}
     <button class="feed-vertodas-btn" onclick="toggleVerTodasDrawer()" title="Ver todas as notícias do feed atual">Ver todas →</button>
   </div>
   <!-- v120.46 (pedido do dono 28/09) — mesma faixa do Operação (#filaAiFiltroFaixa, ~L5769). -->
+  <!-- v120.52 — faixa do foco no mapa (Feed filtrado para 1 ocorrência) -->
+  <div class="elx-ai-filtro-faixa elx-foco-faixa" id="feedFocoFaixa" style="display:none" role="status" aria-live="polite">
+    <span id="feedFocoTexto"></span>
+    <span class="elx-foco-faixa-acoes"><button type="button" onclick="elxFocoMapaVoltar()">↩ Voltar à notícia</button><button type="button" onclick="elxFocoMapaSair()" aria-label="Sair do foco no mapa">✕ Sair do foco</button></span>
+  </div>
   <div class="elx-ai-filtro-faixa" id="feedAiFiltroFaixa" style="display:none" role="status" aria-live="polite">
     <span id="feedAiFiltroTexto"></span>
     <button type="button" class="elx-ai-filtro-limpar" onclick="_aiFiltroLimpar()" aria-label="Limpar filtro do Agente">✕</button>
@@ -6281,6 +6315,7 @@ body.copiloto-aprendizado-on #elxAprendizadoBtn{display:flex}
       <button class="modal-close" onclick="closeModal()" aria-label="Fechar">Fechar ✕</button>
     </div>
     <div class="modal-body">
+      <div id="modalProx"></div><!-- v120.52: "⚠ a X km da estação/TRE" (mesma linha do operador) -->
       <p class="modal-summary" id="modalSummary"></p>
       <div class="elx-da-fonte" id="modalFonte" hidden><span class="elx-da-fonte-rot">Da fonte</span><span class="elx-da-fonte-txt" id="modalFonteTxt"></span></div>
       <div class="modal-topics" id="modalTopics"></div>
@@ -6317,6 +6352,7 @@ body.copiloto-aprendizado-on #elxAprendizadoBtn{display:flex}
       <button class="ma-btn ma-handled" onclick="actHandled()">✓ Tratado</button>
       <button class="ma-btn ma-escalate" onclick="actEscalate()">⚠ Escalar</button>
       <button class="ma-btn ma-ai" id="newsAIBtn" onclick="toggleNewsAIPanel()">⚡ Análise IA</button>
+      <button class="ma-btn ma-map so-estrategico" id="newsMapBtn" type="button" onclick="elxFocoMapaAbrir()" hidden>📍 Mostrar no mapa</button><!-- v120.52 -->
     </div>
   </div>
 </div>
@@ -8863,6 +8899,7 @@ async function fetchLiveNews(forceCompleto){
     S._newsEmptyScope=(normalizados.length===0);
     // Refresh all UI components that depend on news
     buildTicker();
+    try{_elxFocoMapaChecarCritico();}catch(e){} // v120.52 — CRÍTICO novo encerra o foco no mapa (antes do render)
     _elxAlertaCriticoReivindicarSom(_respChegadaPendentes); // v120.39 (fix pós-merge v120.38) — reserva o som pro Alerta Crítico ANTES do popup (renderFeed abaixo) rodar; "o Alerta assume o som quando abre"
     renderFeed(); // já dispara renderEleicoesKpis()->_eleicoesRenderFloatCritico() (popup de CRÍTICO, v120.13)
     /* RESP-CHEGADA: registrado DEPOIS de renderFeed() de propósito — o popup de CRÍTICO
@@ -9965,6 +10002,7 @@ function _aiFiltroSincronizarFaixa(){
    só entra em vigor se pelo menos 1 id ainda existir em S.items (defesa contra poll que já
    descartou o item entre a resposta e o clique no botão). */
 function _aiFiltroDefinir(ids){
+  if(S._focoMapa&&typeof elxFocoMapaSair==='function')elxFocoMapaSair(); // v120.52 QA1: filtro do Agente encerra o foco
   const idsValidos=[...new Set((ids||[]).filter(id=>(S.items||[]).some(n=>n.id===id)))];
   if(!idsValidos.length)return;
   S._aiFiltroPainel={ids:new Set(idsValidos)};
@@ -9987,6 +10025,14 @@ function getFiltered(){
      CRÍTICO como rede de segurança). Nada em S.filters é tocado aqui — "Voltar para todas" não
      precisa restaurar nada, porque nada foi mutado; ao desligar o filtro, o branch de baixo volta
      a rodar exatamente como antes. */
+  // v120.52 — "Mostrar no mapa": com foco ativo, Feed/KPIs/pins mostram SÓ a ocorrência em foco
+  // (precedência sobre "Ver só as novas", filtro do Agente e filtros de tela — nenhum deles é
+  // mutado; ao sair do foco tudo volta exatamente como estava). Snapshot garante o item mesmo
+  // se o poll o tirar de S.items durante o foco.
+  if(S._focoMapa){
+    const vivo=(S.items||NEWS).find(n=>n.id===S._focoMapa.id);
+    return[vivo||S._focoMapa.item];
+  }
   if(S._respChegadaFiltro){
     // v120.29 (C) — sort ad-hoc (S.sort/PRIO_ORDER cru) virou _elxOrdenar(items,S.ordem):
     // mesmo comparador dos demais pontos, incluindo desempate estável por id.
@@ -10789,10 +10835,10 @@ function renderFeed(){
     // são facets/recortes tratados dentro da própria função — unificado no merge v120.44, ver
     // nota junto de _eleicoesFeedTipoMatch). Resumo agrupado (#elxAlertaResumoGestao) só aparece
     // com a aba "Alerta" ativa.
-    const filtrados=(!S._respChegadaFiltro&&S.feedTipoFiltro)?ordenados.filter(n=>_eleicoesFeedTipoMatch(n,S.feedTipoFiltro)):ordenados;
+    const filtrados=(!S._respChegadaFiltro&&!S._focoMapa&&S.feedTipoFiltro)?ordenados.filter(n=>_eleicoesFeedTipoMatch(n,S.feedTipoFiltro)):ordenados;
     const resumoElGestao=document.getElementById('elxAlertaResumoGestao');
     if(resumoElGestao){
-      const ativo=!S._respChegadaFiltro&&S.feedTipoFiltro==='alerta';
+      const ativo=!S._respChegadaFiltro&&!S._focoMapa&&S.feedTipoFiltro==='alerta';
       resumoElGestao.style.display=ativo?'':'none';
       if(ativo)resumoElGestao.innerHTML=_elxAlertaResumoHtml(ordenados);
     }
@@ -12328,6 +12374,7 @@ function _elxProxAtivoIconHtml(ativo){
 function _elxRenderProximidadeDestaque(){
   if(!S.map)return;
   _clearProxDestaque();
+  if(S._focoMapa)return; // v120.52: durante o foco só a camada do foco desenha proximidade
   const ativosJaDesenhados=new Set(); // evita duplicar o pin do mesmo ativo quando 2 eventos o citam
   (S.items||[]).forEach(n=>{
     if(n.prioridade!=='ALTO'&&n.prioridade!=='CRITICO')return;
@@ -12397,9 +12444,10 @@ function addEventPins(){
     // RESP-CHEGADA (v120.28, pós-QA — achado P1-3): mesma suspensão da aba de tipo aplicada em
     // renderFeed() — com "Ver só as novas" ativo, os marcadores seguem EXATAMENTE getFiltered()
     // (já restrito aos ids da chegada), sem o filtro de tipo por cima escondendo algum deles.
-    if(!S._respChegadaFiltro&&S.feedTipoFiltro&&!_eleicoesFeedTipoMatch(n,S.feedTipoFiltro))return false; // === ELEICOES: bloco 52/N — pin segue a aba de tipo do Feed (v120.43: inclui 'alerta'; v120.42: inclui 'apuracao', unificado em _eleicoesFeedTipoMatch)
+    if(!S._respChegadaFiltro&&!S._focoMapa&&S.feedTipoFiltro&&!_eleicoesFeedTipoMatch(n,S.feedTipoFiltro))return false; // === ELEICOES: bloco 52/N — pin segue a aba de tipo do Feed (v120.43: inclui 'alerta'; v120.42: inclui 'apuracao', unificado em _eleicoesFeedTipoMatch)
     // v120.35 — item sem ponto só ganha pin (espiral) se tiver UF conhecida (centróide); sem
     // ponto e sem UF (nacional puro) permanece sem pin individual, mesmo comportamento de sempre.
+    if(S._focoMapa&&n.id===S._focoMapa.id)return false; // v120.52: o foco desenha o próprio pin
     return _elxTemPonto(n)||(n.estado&&UF_CENTROIDS[n.estado]);
   });
   const zoom=(S.map.getZoom&&S.map.getZoom())||10;
@@ -12441,6 +12489,140 @@ function addEventPins(){
       .bindTooltip(tooltipHtml,{direction:'top',className:'atv-hover-tt',offset:[0,-13]})
       .on('click',()=>openModal(n.id));
   });
+}
+/* ═══ v120.52 (dono 30/09) — "📍 Mostrar no mapa" no popup da notícia (perfil Gestão) ═══
+   Fecha o popup, filtra Feed/KPIs/pins para a ocorrência (getFiltered, precedência sobre os
+   demais filtros SEM mutá-los), voa até ela e desenha o MESMO mapa do detalhe do operador
+   (_elxMiniMapDesenhar: pin, raio, linha tracejada, ativos) numa camada própria e temporária.
+   Camadas escolhidas pelo usuário não são tocadas. "Sair do foco" remove a camada, restaura a
+   vista anterior e re-renderiza — rollback de estado trivial. Operação não tem mapa: botão
+   .so-estrategico + checagem de S.map. */
+function _elxFocoMapaCentro(item){
+  const temPonto=_elxTemPonto(item);
+  const centro=temPonto?[item.lat,item.lng]:(item.estado&&UF_CENTROIDS[item.estado]?UF_CENTROIDS[item.estado]:null);
+  return{temPonto,centro};
+}
+function _elxFocoMapaBotaoSync(item){
+  const b=document.getElementById('newsMapBtn');
+  if(!b)return;
+  if(!S.map||isNocReduced()||!item){b.hidden=true;return;}
+  b.hidden=false;
+  const {temPonto,centro}=_elxFocoMapaCentro(item);
+  b.disabled=!centro;
+  b.textContent=temPonto?'📍 Mostrar no mapa':'📍 Mostrar região no mapa';
+  b.title=!centro?'Notícia sem localização':(temPonto?'Abrir esta ocorrência no mapa, com estações e TRE próximos':'Posição aproximada (cidade): abre a região no mapa');
+}
+function _elxFocoMapaCardHtml(item,temPonto){
+  const cor=PRIO_COLOR[item.prioridade]||'#64748B';
+  const titulo=(item.title||'').length>110?item.title.slice(0,107)+'…':(item.title||'');
+  const uf=_eleicoesUfLabel(item.estado)||item.estado||'';
+  return`<div class="elx-foco-topo">📍 Foco no mapa<span class="elx-foco-sev" style="background:${cor}">${eleWaEsc(item.prioridade||'')}</span>${eleWaEsc(uf)}</div>
+    <div class="elx-foco-titulo">${eleWaEsc(titulo)}</div>
+    ${_elxProximidadeLinhaHtml(item)}
+    <div class="elx-foco-legenda">${eleWaEsc(temPonto?_elxMiniMapLegendaTexto(item):'Posição aproximada (cidade) · a notícia não traz o local exato.')}</div>
+    <div class="elx-foco-acoes"><button type="button" onclick="elxFocoMapaVoltar()">↩ Voltar à notícia</button><button type="button" onclick="elxFocoMapaSair()">✕ Sair do foco</button></div>`;
+}
+function _elxFocoMapaFaixaSync(){
+  const f=document.getElementById('feedFocoFaixa');
+  if(!f)return;
+  if(!S._focoMapa){f.style.display='none';return;}
+  const it=S._focoMapa.item;
+  const t=(it.title||'').length>70?it.title.slice(0,67)+'…':(it.title||'');
+  document.getElementById('feedFocoTexto').textContent=`📍 Foco no mapa: 1 ocorrência · ${t}${S._focoMapa.saiuDaLista?' (já saiu da lista atual)':''} — demais filtros suspensos até sair do foco`;
+  f.style.display='flex';
+}
+function _elxFocoMapaLimparCamada(){
+  if(S._focoMapa&&S._focoMapa.camada){try{S._focoMapa.camada.remove();}catch(e){}}
+}
+function elxFocoMapaAbrir(){
+  const item=S.activeModal;
+  if(!item||!S.map||isNocReduced())return;
+  const {temPonto,centro}=_elxFocoMapaCentro(item);
+  if(!centro)return;
+  // Novo foco sobre foco já aberto: preserva a vista ORIGINAL (a de antes do 1º foco).
+  const vistaAnterior=S._focoMapa?S._focoMapa.vistaAnterior:{centro:S.map.getCenter(),zoom:S.map.getZoom()};
+  _elxFocoMapaLimparCamada();
+  closeModal();
+  const camada=L.layerGroup().addTo(S.map);
+  // critIni: CRÍTICOs já existentes ao entrar no foco — qualquer CRÍTICO NOVO depois disso (delta,
+  // recarga completa, reclassificação, volta de aba) encerra o foco (_elxFocoMapaChecarCritico).
+  S._focoMapa={id:item.id,item,camada,vistaAnterior,critIni:new Set((S.items||[]).filter(n=>n.prioridade==='CRITICO').map(n=>n.id))};
+  document.body.classList.add('elx-foco-ativo');
+  // _elxMiniMapDesenhar aceita qualquer alvo com addLayer (LayerGroup); o fitBounds interno dele
+  // falha em silêncio (try/catch) num LayerGroup — o enquadramento é feito aqui, no mapa principal.
+  _elxMiniMapDesenhar(camada,item,centro,temPonto);
+  const pontos=[centro];
+  (_elxProximidadeOrdenada(item)||[]).forEach(p=>{const a=_elxAtivoPorId(p.ativo_id);if(a&&a.lat!=null&&a.lng!=null)pontos.push([a.lat,a.lng]);});
+  const card=document.getElementById('elxFocoCard');
+  if(card){card.innerHTML=_elxFocoMapaCardHtml(item,temPonto);card.classList.add('aberto');}
+  renderFeed();
+  _elxFocoMapaFaixaSync();
+  // Enquadramento: desconta o cartão (esquerda/topo) e o painel da Apuração (direita), se aberto.
+  const apr=document.getElementById('apuracaoPanel');
+  const direita=(apr&&apr.classList.contains('open'))?(apr.getBoundingClientRect().width+24):40;
+  const opts={paddingTopLeft:[40,card?Math.min(card.offsetHeight+24,220):40],paddingBottomRight:[direita,40],animate:true,duration:1.2};
+  try{
+    S.map.invalidateSize(false);
+    if(temPonto&&pontos.length>1)S.map.flyToBounds(L.latLngBounds(pontos),Object.assign({maxZoom:14},opts));
+    else S.map.flyToBounds(L.latLng(centro[0],centro[1]).toBounds(temPonto?4000:60000),Object.assign({maxZoom:temPonto?13:9},opts));
+  }catch(e){try{S.map.setView(centro,temPonto?13:9);}catch(e2){}}
+}
+/* v120.52 (QA rodada 2) — ESC é "o overlay mais de cima fecha primeiro": outros overlays têm
+   listeners próprios (sininho, WhatsApp, confirmação, RELOP, menus, leitura completa, Alerta
+   Crítico); se qualquer um estiver visível, ou se o ESC vier de um campo de texto, o foco fica. */
+function _elxVisivel(el){
+  if(!el)return false;
+  const cs=getComputedStyle(el);
+  if(cs.display==='none'||cs.visibility==='hidden'||+cs.opacity===0)return false;
+  const r=el.getBoundingClientRect();
+  return r.width>0&&r.height>0;
+}
+function _elxFocoEscBloqueado(e){
+  const t=e&&e.target;
+  const tipo=(t&&t.type||'').toLowerCase();
+  const digitavel=t&&((t.tagName==='TEXTAREA')||(t.tagName==='SELECT')||(t.tagName==='INPUT'&&!['checkbox','radio','button','submit','reset','range','color','file'].includes(tipo))||t.isContentEditable);
+  if(digitavel&&t.offsetParent)return true; // mesma regra do Plantão: checkbox/radio focados não travam o ESC
+  if(S.rel&&S.rel.aberto)return true;
+  if(['elxCritPop','nocConfirmModal','eleWaModal','elxAlertaCriticoOverlay','filaLerOverlay','waModal','liveCamModal','modal'].some(id=>_elxVisivel(document.getElementById(id))))return true;
+  if([...document.querySelectorAll('.fd-menu')].some(_elxVisivel))return true;
+  return false;
+}
+/* v120.52 (QA rodada 3) — o foco nunca esconde um CRÍTICO novo, venha por onde vier (delta,
+   recarga completa após falha/resync de 15 min/volta de aba, item reclassificado). Chamado logo
+   após o merge de fetchLiveNews; só conta CRÍTICO válido no painel (_elxOcorrenciaValidaPainel). */
+function _elxFocoMapaSairSeguro(){
+  try{elxFocoMapaSair();}catch(e){ // nunca derruba o poll: em último caso, só zera o estado do foco
+    try{_elxFocoMapaLimparCamada();}catch(e2){}
+    S._focoMapa=null;document.body.classList.remove('elx-foco-ativo');
+    const c=document.getElementById('elxFocoCard');if(c){c.classList.remove('aberto');c.innerHTML='';}
+    try{_elxFocoMapaFaixaSync();}catch(e3){}
+  }
+}
+function _elxFocoMapaChecarCritico(){
+  const f=S._focoMapa;
+  if(!f)return false;
+  const novo=(S.items||[]).some(n=>n.prioridade==='CRITICO'&&n.id!==f.id&&!f.critIni.has(n.id)
+    &&(typeof _elxOcorrenciaValidaPainel!=='function'||_elxOcorrenciaValidaPainel(n)));
+  if(novo)_elxFocoMapaSairSeguro();
+  return novo;
+}
+function elxFocoMapaVoltar(){
+  if(!S._focoMapa)return;
+  const id=S._focoMapa.id;
+  if((S.items||[]).some(n=>n.id===id)){openModal(id);return;}
+  S._focoMapa.saiuDaLista=true; _elxFocoMapaFaixaSync(); // QA1: avisa em vez de não fazer nada
+}
+function elxFocoMapaSair(){
+  if(!S._focoMapa)return;
+  const v=S._focoMapa.vistaAnterior;
+  _elxFocoMapaLimparCamada();
+  S._focoMapa=null;
+  document.body.classList.remove('elx-foco-ativo');
+  const card=document.getElementById('elxFocoCard');
+  if(card){card.classList.remove('aberto');card.innerHTML='';}
+  renderFeed();
+  _elxFocoMapaFaixaSync();
+  if(v&&S.map){try{S.map.flyTo(v.centro,v.zoom,{animate:true,duration:0.9});}catch(e){}}
 }
 function initMap(){
   const el=document.getElementById('brazil-map');
@@ -13265,6 +13447,7 @@ async function nocLogout(){
   return nocLogoutLocal();
 }
 function nocLogoutLocal(){
+  if(S._focoMapa&&typeof elxFocoMapaSair==='function'){try{elxFocoMapaSair();}catch(e){}} // v120.52 QA1: foco não sobrevive ao logout/queda de sessão
   // === ELEICOES: v120.11 — reseta o cursor/h do delta sync de /news no logout: a próxima
   // sessão (mesma aba ou outra) sempre começa com uma chamada completa, nunca herda o cursor
   // de uma sessão anterior.
@@ -13752,6 +13935,8 @@ function openModal(id){
   document.getElementById('modalEstado').textContent=item.estado;
   document.getElementById('modalTitle').textContent=item.title;
   document.getElementById('modalSummary').textContent=item.ai_summary;
+  { const px=document.getElementById('modalProx'); if(px)px.innerHTML=_elxProximidadeLinhaHtml(item); } // v120.52
+  _elxFocoMapaBotaoSync(item); // v120.52
   { const fonte=_elxDaFonteTexto(item), box=document.getElementById('modalFonte');
     if(box){ document.getElementById('modalFonteTxt').textContent=fonte; box.hidden=!fonte; } }
   document.getElementById('modalTopics').innerHTML=item.topicos.map(t=>`<span class="modal-topic-tag">${t}</span>`).join('');
@@ -13867,7 +14052,8 @@ document.addEventListener('keydown',e=>{
   if(waOpen){closeWaModal();return;}
   const liveCamModal=document.getElementById('liveCamModal');
   if(liveCamModal&&liveCamModal.style.display==='flex'){closeLiveCameraModal();return;}
-  if(S.activeModal)closeModal();
+  if(S.activeModal){closeModal();return;}
+  if(S._focoMapa&&typeof elxFocoMapaSair==='function'&&!_elxFocoEscBloqueado(e))elxFocoMapaSair(); // v120.52: ESC sai do foco (só se nada mais estiver aberto)
 });
 
 /* ───────────── MODAL ACTIONS ───────────── */
@@ -22141,6 +22327,10 @@ function _respChegadaRegistrar(chegadas){
   S._respChegada.ids=[...ids];
   S._respChegada.ultima=agora;
   _respChegadaTocarSomSeCritico(chegadas);
+  // v120.52 (QA rodada 2): CRÍTICO novo encerra o foco no mapa — pin, halo de proximidade e Feed
+  // completos voltam na hora (o foco nunca pode esconder um crítico em telão) e o cartão de
+  // chegada deixa de disputar espaço com o cartão do foco.
+  if(S._focoMapa&&chegadas.some(n=>n.prioridade==='CRITICO'&&n.id!==S._focoMapa.id)&&typeof _elxFocoMapaSairSeguro==='function')_elxFocoMapaSairSeguro();
   _respChegadaRenderCard();
 }
 /* Som só quando o lote tem CRÍTICO — reaproveita _elxCritBeep() (mesmo mudo, mesmo anti-flood
@@ -22390,6 +22580,7 @@ document.addEventListener('click',e=>{
    EFETIVAMENTE aparecem em alguma superfície do perfil atual. Nada em S.filters/S.filaFiltros é
    tocado — "Voltar para todas" não restaura nada porque nada foi mutado. */
 function _respChegadaVerSoNovas(){
+  if(S._focoMapa&&typeof elxFocoMapaSair==='function')elxFocoMapaSair(); // v120.52 QA1: chegada nunca fica escondida pelo foco
   const j=S._respChegada;
   if(!j||!j.ids.length)return;
   S._respChegadaFiltro=new Set(j.ids);
