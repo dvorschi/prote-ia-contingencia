@@ -4998,6 +4998,7 @@ body:has(#elxCritPop[style*="flex"]) .resp-chegada-selo{display:none!important}
 #nocConfirmModal .wa-body{padding:16px 18px;font-size:14px;line-height:1.5;color:var(--text-dim)}
 /* ── Envio manual por WhatsApp com seleção de destinatários + agenda (v120.2, 22/09) — reusa
    .wa-box/.wa-c-item/.wa-form/.wa-footer da v119; só o que não existia está aqui. ── */
+#eleWaAddBtn,#eleWaForm{display:none!important} /* v120.56: cadastro de contato removido do painel */
 #eleWaModal{position:fixed;inset:0;z-index:10002;display:none;align-items:center;justify-content:center;
   background:rgba(4,9,20,.85)}
 #eleWaModal .wa-box{width:480px}
@@ -6837,7 +6838,7 @@ body.copiloto-aprendizado-on #elxAprendizadoBtn{display:flex}
       <div class="wa-section">
         <div class="wa-section-row">
           <span class="wa-section-title">Destinatários</span>
-          <button class="wa-add-btn" id="eleWaAddBtn" type="button">+ Adicionar contato</button>
+          <button class="wa-add-btn" id="eleWaAddBtn" type="button" hidden>+ Adicionar contato</button><!-- v120.56: cadastro de contato removido do painel (risco de bloqueio da Meta, decisão do dono 01/10); contatos só pela equipe -->
         </div>
         <form class="wa-form" id="eleWaForm" hidden novalidate>
           <div class="wa-form-title">NOVO CONTATO</div>
@@ -18553,7 +18554,6 @@ function openPostModal(idx){
   const cfg=socialCatCfg(cat);
   const user=p.author_username||'?';
   const url=p.url||`https://x.com/${user}`;
-  const waText=encodeURIComponent(`*[SEG Monitor — ${cat}]*\n@${user}: ${p.content||''}\n\n${url}`);
 
   /* Preencher modal */
   const badgeEl=document.getElementById('socialModalCatBadge');
@@ -18575,7 +18575,7 @@ function openPostModal(idx){
   document.getElementById('socialModalReplies').textContent=p.replies||0;
   document.getElementById('socialModalActions').innerHTML=`
     <a href="${url}" target="_blank" class="social-action-btn primary">𝕏 Abrir no Twitter</a>
-    <a href="https://wa.me/?text=${waText}" target="_blank" class="social-action-btn">📲 Enviar WhatsApp</a>
+    <button class="social-action-btn" onclick="socialEnviarWhatsApp(${idx})"${p.news_id?'':' title="Este post não foi classificado como ocorrência — envio indisponível"'}>📲 Enviar WhatsApp</button>
     <button class="social-action-btn ai" onclick="toggleSocialAIPanel()">⚡ Inteligência Operacional</button>
     <button class="social-action-btn" onclick="closeSocialModal()">✕ Fechar</button>`;
 
@@ -18589,6 +18589,17 @@ function openPostModal(idx){
   document.getElementById('socialModalOverlay').classList.add('open');
 }
 
+/* v120.56 (pedido do dono 01/10): o post do X vira notícia no B v5.8 (url_hash = md5(url do tweet)); o /social
+   (D v9.11) devolve news_id/news_prioridade/news_title/news_estado. O envio usa o MESMO formulário da ocorrência
+   (enviarOcorrenciaWhatsApp → template aprovado da Meta por news_id). Sem notícia correspondente (post fora dos
+   temas monitorados), não há envio — nunca abre o WhatsApp Web. */
+function socialEnviarWhatsApp(idx){
+  const p=(S.socialPosts||[])[idx]; if(!p)return;
+  if(!p.news_id){showToast('Este post não foi classificado como ocorrência — envio por WhatsApp indisponível.','var(--alto)');return;}
+  const item=(S.items||[]).find(n=>n.id===p.news_id)||{id:p.news_id,title:p.news_title||p.content||'',
+    prioridade:p.news_prioridade||'',estado:p.news_estado||''};
+  enviarOcorrenciaWhatsApp(item);
+}
 /* Ações disponíveis por categoria */
 const SOCIAL_AI_ACTIONS=[
   {id:'impacto', label:'📡 Impacto em ERBs',
@@ -22842,7 +22853,7 @@ async function enviarOcorrenciaWhatsApp(item){
   document.getElementById('eleWaItem').innerHTML=
     `<strong>${eleWaEsc(item.title)}</strong><br><span style="color:var(--text-muted);font-size:12px">${eleWaEsc(item.prioridade||'')}${item.estado?' · '+eleWaEsc(item.estado):''}</span>`;
   document.getElementById('eleWaBusca').value='';
-  document.getElementById('eleWaAddBtn').style.display=nocPode('contatos.gerenciar')?'':'none';
+  document.getElementById('eleWaAddBtn').style.display='none'; // v120.56: sem cadastro de contato no painel
   eleWaFecharForm();
   eleWaRender();
   document.getElementById('eleWaModal').style.display='flex';
@@ -22854,7 +22865,7 @@ function eleWaFiltrados(){
 function eleWaRender(){
   const lista=document.getElementById('eleWaLista'); const vis=eleWaFiltrados();
   if(!ELE_WA.contatos.length){
-    lista.innerHTML='<div class="wa-empty">Nenhum contato cadastrado.'+(nocPode('contatos.gerenciar')?' Use “+ Adicionar contato”.':'')+'</div>';
+    lista.innerHTML='<div class="wa-empty">Nenhum contato cadastrado.</div>'; // v120.56
   }else if(!vis.length){
     lista.innerHTML='<div class="wa-empty">Nenhum contato encontrado.</div>';
   }else{
