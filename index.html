@@ -23017,7 +23017,8 @@ function _ckpMostrarResultado(j){
   const box=document.getElementById('ckpResultado'); box.hidden=false;
   box.innerHTML=`<div class="ckp-ok"><b>✓ Checkpoint gerado</b><span class="ckp-sub">${_ckpEsc(j.codigo)} · ${_ckpEsc(j.periodo)}</span></div>
     <div class="ckp-acoes" style="justify-content:flex-start;margin-top:10px">
-      <button type="button" class="ckp-btn primario" onclick="ckpBaixar('pdf')">Salvar PDF</button>
+      <button type="button" class="ckp-btn primario" id="ckpVerBtn" onclick="ckpVisualizar()">Visualizar</button>
+      <button type="button" class="ckp-btn" onclick="ckpBaixar('pdf')">Salvar PDF</button>
       ${j.tem_png?'<button type="button" class="ckp-btn" onclick="ckpBaixar(\'png\')">Salvar imagem (PNG)</button>':''}
       ${_ckpPode('relatorios.exportar')?'<button type="button" class="ckp-btn" onclick="ckpMostrarEmail()">Enviar por e-mail</button>':''}
       <button type="button" class="ckp-btn" onclick="ckpNovo()">Gerar outro</button></div>
@@ -23028,6 +23029,23 @@ function _ckpMostrarResultado(j){
 }
 function ckpNovo(){ document.getElementById('ckpFecharBtn').textContent='Cancelar'; document.getElementById('ckpResultado').hidden=true; document.getElementById('ckpEscolha').hidden=false; const b=document.getElementById('ckpGerarBtn'); b.hidden=false; b.focus(); document.getElementById('ckpMsg').textContent=''; }
 function ckpMostrarEmail(){ const b=document.getElementById('ckpEmailBox'); if(b){b.hidden=false; const i=document.getElementById('ckpEmailExtras'); if(i)i.focus();} }
+/* v120.54 — "Visualizar": abre o PDF já gerado numa nova aba (leitor do navegador). A aba é aberta no clique,
+   antes do download (senão o navegador bloqueia como pop-up); o arquivo vem com a sessão do usuário. */
+async function ckpVisualizar(){
+  const msg=document.getElementById('ckpMsg'); if(!_ckpUltimo)return;
+  let w=null; try{ w=window.open('','_blank'); }catch(e){}
+  if(w){ try{ w.opener=null; w.document.title='Checkpoint Executivo'; w.document.body.style.cssText='margin:0;height:100vh;display:flex;align-items:center;justify-content:center;background:#0b1422;color:#cbd8ec;font:15px -apple-system,Segoe UI,Arial,sans-serif'; w.document.body.textContent='Carregando o Checkpoint…'; }catch(e){} }
+  try{
+    msg.className='ckp-msg'; msg.innerHTML='<span class="ckp-girando"></span>Abrindo…';
+    const r=await nocFetch(CKP_API+'/arquivo?id='+encodeURIComponent(_ckpUltimo.id)+'&formato=pdf');
+    if(!r.ok) throw new Error('Arquivo indisponível no momento.');
+    const url=URL.createObjectURL(new Blob([await r.blob()],{type:'application/pdf'}));
+    if(w&&!w.closed) w.location.href=url;
+    else if(!window.open(url,'_blank')) throw new Error('O navegador bloqueou a nova aba. Permita pop-ups para este site ou use "Salvar PDF".');
+    setTimeout(()=>URL.revokeObjectURL(url),10*60*1000);
+    msg.textContent='PDF aberto em nova aba.';
+  }catch(e){ try{ if(w&&!w.closed)w.close(); }catch(_){} if(_ckpSessaoCaiu(e))return; msg.className='ckp-msg erro'; msg.textContent=_ckpMsgErro(e); }
+}
 async function ckpBaixar(formato){
   const msg=document.getElementById('ckpMsg'); if(!_ckpUltimo)return;
   try{
