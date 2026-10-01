@@ -3377,6 +3377,32 @@ body.noc-eleicoes:not(.noc-relatorios-ver-habilitado) #elxRelatoriosBtn{display:
 /* Botão no #hdr — mesmo molde de .hdr-btn (📅/𝕏/🚪), gate por permissão via classe no body
    (mesmo mecanismo de #elxRelatoriosBtn, decisão TL §4.4: nada de JS pra esconder botão). */
 body.noc-eleicoes:not(.noc-relatorios-ver-habilitado) #relOpBtn{display:none!important}
+/* v120.53 (dono 30/09) — Checkpoint Executivo: botão + popup isolados (prefixo ckp). Mesma regra de permissão do
+   botão de Relatórios; "Enviar por e-mail" só com relatorios.exportar (checado em JS). */
+body.noc-eleicoes:not(.noc-ckp-habilitado) #ckpBtn{display:none!important} /* gerar arquivo exige relatorios.exportar (mesma regra do RELOP) */
+#ckpModal{position:fixed;inset:0;z-index:9600;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55)}
+#ckpModal.aberto{display:flex}
+.ckp-box{width:min(460px,94vw);background:var(--bg-card);border:1px solid var(--border-s);border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.45);color:var(--text);padding:18px 20px;display:flex;flex-direction:column;gap:12px}
+.ckp-topo{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.ckp-titulo{font-size:17px;font-weight:800}
+.ckp-sub{font-size:12.5px;color:var(--text-muted);margin-top:2px}
+.ckp-fechar{background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;padding:2px 6px}
+.ckp-opcao{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border-s);border-radius:10px;cursor:pointer;font-size:14px}
+.ckp-opcao input[type=radio]{accent-color:var(--claro)}
+.ckp-opcao small{display:block;color:var(--text-muted);font-size:12px}
+.ckp-opcao input[type=date]{margin-left:auto;background:var(--bg-panel);color:var(--text);border:1px solid var(--border-s);border-radius:7px;padding:5px 8px;font:inherit;font-size:13px}
+.ckp-acoes{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.ckp-btn{font:inherit;font-size:13.5px;font-weight:700;padding:8px 14px;border-radius:9px;cursor:pointer;border:1px solid var(--border-s);background:var(--bg-panel);color:var(--text)}
+.ckp-btn.primario{background:var(--claro);border-color:var(--claro);color:#fff}
+.ckp-btn:disabled{opacity:.55;cursor:not-allowed}
+.ckp-msg{font-size:13px;line-height:1.45}
+.ckp-msg.erro{color:#f87171}
+.ckp-ok{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-radius:10px;background:rgba(34,197,94,.10);border:1px solid rgba(34,197,94,.35)}
+.ckp-ok b{font-size:14px}
+.ckp-email{display:flex;flex-direction:column;gap:6px}
+.ckp-email input{background:var(--bg-panel);color:var(--text);border:1px solid var(--border-s);border-radius:8px;padding:7px 9px;font:inherit;font-size:13px}
+.ckp-girando{display:inline-block;width:14px;height:14px;border:2px solid var(--border-s);border-top-color:var(--claro);border-radius:50%;animation:ckpGira .8s linear infinite;vertical-align:-2px;margin-right:6px}
+@keyframes ckpGira{to{transform:rotate(360deg)}}
 
 /* Gaveta de ronda v115 (📑) oculta em modo eleições (spec §4.4, decisão TL #17). A UI nunca
    dependeu desta regra existir (comentário desatualizado corrigido em ensureMonData(), ver
@@ -5179,7 +5205,7 @@ body.copiloto-aprendizado-on #elxAprendizadoBtn{display:flex}
     text-overflow:ellipsis;white-space:nowrap;flex:0 1 auto}
   #authUserName{max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
     display:inline-block}
-  #clock,#authUserBadge,#authLogoutBtn,#relOpBtn{flex-shrink:0}
+  #clock,#authUserBadge,#authLogoutBtn,#relOpBtn,#ckpBtn{flex-shrink:0}
 }
 @media (min-width:768px) and (max-width:899px){
   .hdr-title-center{display:none}
@@ -5453,6 +5479,7 @@ body.copiloto-aprendizado-on #elxAprendizadoBtn{display:flex}
   <button class="hdr-btn" id="elxRelatoriosBtn" onclick="_elxOpenRelatorios()" title="Relatório Diário" aria-label="Relatório Diário">📅</button>
 <!-- RELOP:GANCHO:HDR_BUTTON:INICIO -->
   <button class="hdr-btn rel-op-btn" id="relOpBtn" onclick="_relopAbrir()" title="Relatórios de Inteligência Operacional" aria-label="Relatórios de Inteligência Operacional"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></button>
+  <button class="hdr-btn rel-op-btn" id="ckpBtn" type="button" onclick="ckpAbrir()" title="Checkpoint Executivo" aria-label="Gerar Checkpoint Executivo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2"></rect><path d="M7 14l3-3 3 2 4-5"></path><line x1="8" y1="21" x2="16" y2="21"></line></svg></button><!-- v120.53 Checkpoint -->
   <!-- RELOP:GANCHO:HDR_BUTTON:FIM -->
   <!-- === ELEICOES: Copiloto proativo (Fase 3, aprendizado) — v120.21. Botão só visível com
        body.copiloto-aprendizado-on (nocPode('conhecimento.validar') E copiloto/config.aprendizado_ativa
@@ -12583,7 +12610,7 @@ function _elxFocoEscBloqueado(e){
   const digitavel=t&&((t.tagName==='TEXTAREA')||(t.tagName==='SELECT')||(t.tagName==='INPUT'&&!['checkbox','radio','button','submit','reset','range','color','file'].includes(tipo))||t.isContentEditable);
   if(digitavel&&t.offsetParent)return true; // mesma regra do Plantão: checkbox/radio focados não travam o ESC
   if(S.rel&&S.rel.aberto)return true;
-  if(['elxCritPop','nocConfirmModal','eleWaModal','elxAlertaCriticoOverlay','filaLerOverlay','waModal','liveCamModal','modal'].some(id=>_elxVisivel(document.getElementById(id))))return true;
+  if(['elxCritPop','nocConfirmModal','eleWaModal','elxAlertaCriticoOverlay','filaLerOverlay','waModal','liveCamModal','modal','ckpModal'].some(id=>_elxVisivel(document.getElementById(id))))return true;
   if([...document.querySelectorAll('.fd-menu')].some(_elxVisivel))return true;
   return false;
 }
@@ -12996,6 +13023,7 @@ function nocAuthUnlocked(username,fromGesture){
     // v120.7 — Onda 1, item 5: mesmo mecanismo acima, pro Relatório Diário
     // (acesso à tela × permissão de exportar CSV/PDF/WhatsApp/oficial).
     document.body.classList.toggle('noc-relatorios-ver-habilitado',nocPode('relatorios.ver'));
+    document.body.classList.toggle('noc-ckp-habilitado',nocPode('relatorios.ver')&&nocPode('relatorios.exportar')); // v120.53 Checkpoint
     document.body.classList.toggle('noc-relatorios-exportar-habilitado',nocPode('relatorios.exportar'));
     _eleicoesInitPerfil();
 /* RELOP:GANCHO:INIT:INICIO */
@@ -22942,6 +22970,85 @@ document.addEventListener('keydown',e=>{
    assume que a aba existe). Reaplicável: ver tests/reaplicar-relop.py. */
 
 const RELOP_API='https://contingencia-api.infoelninors.org/webhook/noc-api/relatorios/op';
+/* ═══ v120.53 (dono 30/09) — Checkpoint Executivo. Módulo isolado: workflow NOC-K (noc-api/checkpoint/*), popup
+   #ckpModal. Gera sem carregar nada na tela; ao terminar oferece baixar PDF/PNG e enviar por e-mail (e-mail só com
+   relatorios.exportar — o servidor também confere). Nada do módulo RELOP é tocado. ═══ */
+const CKP_API='https://contingencia-api.infoelninors.org/webhook/noc-api/checkpoint';
+let _ckpUltimo=null, _ckpGerando=false, _ckpLogin=null;
+// Traduz erro técnico para o usuário (nunca mostrar 'Failed to fetch' / código cru).
+function _ckpMsgErro(e){const m=String(e&&e.message||e||'');if(m==='sem_sessao'||/sess[aã]o/i.test(m))return 'Sessão expirada. Entre novamente.';if(/failed to fetch|networkerror|load failed|typeerror/i.test(m))return 'Sem conexão com o servidor. Tente novamente.';return m||'Não foi possível concluir agora. Tente novamente.';}
+function _ckpSessaoCaiu(e){const m=String(e&&e.message||'');if(m==='sem_sessao'||/sessao_expirada|sess[aã]o expirada/i.test(m)){ckpFechar();_ckpUltimo=null;return true;}return false;}
+function _ckpPode(p){return Array.isArray(NOC_SESSAO&&NOC_SESSAO.perms)&&NOC_SESSAO.perms.includes(p);}
+function _ckpHojeBrt(){const d=new Date(Date.now()-3*3600000);return d.toISOString().slice(0,10);}
+function _ckpEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function ckpAbrir(){
+  const m=document.getElementById('ckpModal'); if(!m)return;
+  const dia=document.getElementById('ckpDia'); const hoje=_ckpHojeBrt(); dia.max=hoje; if(!dia.value)dia.value=hoje;
+  const login=(NOC_SESSAO&&NOC_SESSAO.login)||null;
+  if(_ckpLogin!==login){ _ckpUltimo=null; _ckpLogin=login; } // outro usuário na mesma aba não vê o resultado anterior
+  if(!_ckpGerando&&!_ckpUltimo){ document.getElementById('ckpMsg').textContent=''; document.getElementById('ckpMsg').className='ckp-msg';
+    document.getElementById('ckpResultado').hidden=true; document.getElementById('ckpEscolha').hidden=false; document.getElementById('ckpGerarBtn').hidden=false; document.getElementById('ckpFecharBtn').textContent='Cancelar'; }
+  m.classList.add('aberto'); setTimeout(()=>{const b=document.getElementById('ckpGerarBtn'); if(b&&!b.hidden)b.focus();},30);
+}
+function ckpFechar(){const m=document.getElementById('ckpModal'); if(m)m.classList.remove('aberto'); const b=document.getElementById('ckpBtn'); if(b)b.focus();}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){const m=document.getElementById('ckpModal'); if(m&&m.classList.contains('aberto')&&!(S.rel&&S.rel.aberto)){e.stopPropagation();ckpFechar();}}},true); // RELOP aberto por cima fecha primeiro
+document.addEventListener('change',e=>{ if(e.target&&e.target.id==='ckpDia'){const r=document.querySelector('input[name="ckpPeriodo"][value="dia"]'); if(r)r.checked=true;} });
+async function _ckpJson(url,corpo){
+  const r=await nocFetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(corpo)});
+  let j=null; try{j=await r.json();}catch(e){}
+  if(!r.ok||!j||j.ok===false) throw new Error((j&&j.mensagem)||'Não foi possível concluir agora. Tente novamente.');
+  return j;
+}
+async function ckpGerar(){
+  if(_ckpGerando)return;
+  const periodo=(document.querySelector('input[name="ckpPeriodo"]:checked')||{}).value||'semana';
+  const dia=document.getElementById('ckpDia').value;
+  const msg=document.getElementById('ckpMsg'), btn=document.getElementById('ckpGerarBtn');
+  if(periodo==='dia'&&!dia){msg.className='ckp-msg erro';msg.textContent='Selecione a data.';return;}
+  _ckpGerando=true; btn.disabled=true; msg.className='ckp-msg'; msg.innerHTML='<span class="ckp-girando"></span>Gerando o checkpoint… leva cerca de 15 segundos.';
+  try{
+    const j=await _ckpJson(CKP_API+'/gerar',periodo==='dia'?{periodo:'dia',dia}:{periodo:'semana'});
+    _ckpUltimo=j; msg.textContent=''; _ckpMostrarResultado(j);
+  }catch(e){ if(_ckpSessaoCaiu(e))return; msg.className='ckp-msg erro'; msg.textContent=_ckpMsgErro(e); }
+  finally{ _ckpGerando=false; btn.disabled=false; }
+}
+function _ckpMostrarResultado(j){
+  document.getElementById('ckpEscolha').hidden=true; document.getElementById('ckpGerarBtn').hidden=true; document.getElementById('ckpFecharBtn').textContent='Fechar';
+  const box=document.getElementById('ckpResultado'); box.hidden=false;
+  box.innerHTML=`<div class="ckp-ok"><b>✓ Checkpoint gerado</b><span class="ckp-sub">${_ckpEsc(j.codigo)} · ${_ckpEsc(j.periodo)}</span></div>
+    <div class="ckp-acoes" style="justify-content:flex-start;margin-top:10px">
+      <button type="button" class="ckp-btn primario" onclick="ckpBaixar('pdf')">Salvar PDF</button>
+      ${j.tem_png?'<button type="button" class="ckp-btn" onclick="ckpBaixar(\'png\')">Salvar imagem (PNG)</button>':''}
+      ${_ckpPode('relatorios.exportar')?'<button type="button" class="ckp-btn" onclick="ckpMostrarEmail()">Enviar por e-mail</button>':''}
+      <button type="button" class="ckp-btn" onclick="ckpNovo()">Gerar outro</button></div>
+    <div class="ckp-email" id="ckpEmailBox" hidden style="margin-top:10px">
+      <span class="ckp-sub">Vai para o seu e-mail cadastrado. Destinatários extras (opcional, até 3, separados por vírgula):</span>
+      <input type="text" id="ckpEmailExtras" placeholder="nome@claro.com.br" autocomplete="off">
+      <div class="ckp-acoes" style="justify-content:flex-start"><button type="button" class="ckp-btn primario" id="ckpEmailBtn" onclick="ckpEnviarEmail()">Enviar</button></div></div>`;
+}
+function ckpNovo(){ document.getElementById('ckpFecharBtn').textContent='Cancelar'; document.getElementById('ckpResultado').hidden=true; document.getElementById('ckpEscolha').hidden=false; const b=document.getElementById('ckpGerarBtn'); b.hidden=false; b.focus(); document.getElementById('ckpMsg').textContent=''; }
+function ckpMostrarEmail(){ const b=document.getElementById('ckpEmailBox'); if(b){b.hidden=false; const i=document.getElementById('ckpEmailExtras'); if(i)i.focus();} }
+async function ckpBaixar(formato){
+  const msg=document.getElementById('ckpMsg'); if(!_ckpUltimo)return;
+  try{
+    msg.className='ckp-msg'; msg.innerHTML='<span class="ckp-girando"></span>Baixando…';
+    const r=await nocFetch(CKP_API+'/arquivo?id='+encodeURIComponent(_ckpUltimo.id)+'&formato='+formato);
+    if(!r.ok) throw new Error('Arquivo indisponível no momento.');
+    const blob=await r.blob(); const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download=_ckpUltimo.codigo+'.'+formato; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);
+    msg.textContent='Arquivo salvo.';
+  }catch(e){ if(_ckpSessaoCaiu(e))return; msg.className='ckp-msg erro'; msg.textContent=_ckpMsgErro(e); }
+}
+async function ckpEnviarEmail(){
+  const msg=document.getElementById('ckpMsg'), btn=document.getElementById('ckpEmailBtn'); if(!_ckpUltimo)return;
+  const extras=String((document.getElementById('ckpEmailExtras')||{}).value||'').split(/[,;\s]+/).map(x=>x.trim()).filter(Boolean);
+  if(extras.length>3){msg.className='ckp-msg erro';msg.textContent='No máximo 3 destinatários extras.';return;}
+  btn.disabled=true; msg.className='ckp-msg'; msg.innerHTML='<span class="ckp-girando"></span>Enviando…';
+  try{ const j=await _ckpJson(CKP_API+'/enviar-email',{id:_ckpUltimo.id,destinatarios_extra:extras});
+    msg.textContent='E-mail enviado para '+(j.destinatarios||[]).join(', ')+'.'; }
+  catch(e){ if(_ckpSessaoCaiu(e))return; msg.className='ckp-msg erro'; msg.textContent=_ckpMsgErro(e); }
+  finally{ btn.disabled=false; }
+}
 /* Webhook com parâmetro de caminho (:id / :dia) só responde prefixado pelo webhookId no n8n
    (verificado em produção 25/09: sem o prefixo, 404). Os webhookIds são fixos, definidos no build do D. */
 const RELOP_WH='https://contingencia-api.infoelninors.org/webhook/';
@@ -24248,6 +24355,20 @@ nocCheckAuth();
        leitor de tela a cada ciclo. O landmark role="region"/aria-label do painel (acima) já
        basta pra navegação; o operador que abre o painel lê o snapshot do momento. -->
   <div id="apuracaoPanelBody"></div>
+</div>
+<!-- v120.53 — Checkpoint Executivo (popup isolado; preenchido por ckp* no JS) -->
+<div id="ckpModal" role="dialog" aria-modal="true" aria-labelledby="ckpTitulo" onclick="if(event.target===this)ckpFechar()">
+  <div class="ckp-box">
+    <div class="ckp-topo"><div><div class="ckp-titulo" id="ckpTitulo">Checkpoint Executivo</div><div class="ckp-sub">Gera o arquivo no layout do checkpoint (PDF e imagem).</div></div>
+      <button type="button" class="ckp-fechar" onclick="ckpFechar()" aria-label="Fechar">✕</button></div>
+    <div id="ckpEscolha">
+      <label class="ckp-opcao"><input type="radio" name="ckpPeriodo" value="semana" checked><span>Semana<small>Últimos 7 dias, até agora</small></span></label>
+      <label class="ckp-opcao" style="margin-top:8px"><input type="radio" name="ckpPeriodo" value="dia"><span>Dia específico<small>Selecione a data</small></span><input type="date" id="ckpDia" aria-label="Dia do checkpoint"></label>
+    </div>
+    <div class="ckp-msg" id="ckpMsg" role="status" aria-live="polite"></div>
+    <div id="ckpResultado" hidden></div>
+    <div class="ckp-acoes" id="ckpAcoes"><button type="button" class="ckp-btn" id="ckpFecharBtn" onclick="ckpFechar()">Cancelar</button><button type="button" class="ckp-btn primario" id="ckpGerarBtn" onclick="ckpGerar()">Gerar</button></div>
+  </div>
 </div>
 
 <!-- CONTINGÊNCIA: faixa fixa + hora da última cópia dos dados -->
