@@ -6009,6 +6009,7 @@ body.copiloto-aprendizado-on #elxAprendizadoBtn{display:flex}
         <option value="antigas" title="Antigas — mais antiga primeiro">Antigas</option>
       </select>
       <label><input type="checkbox" id="filaFiltroAtivo" onchange="filaAtualizarFiltro('soAtivo',this.checked)"> Só c/ ativo no raio</label>
+      <label title="Só ocorrências perto dos prédios e locais estratégicos — mesma regra do Checkpoint"><input type="checkbox" id="filaFiltroPredios" onchange="filaAtualizarFiltro('soPredios',this.checked)"> Só perto dos prédios estratégicos</label><!-- v120.57 -->
     </div>
     <!-- v120.43 (item 2, pedido do dono 28/09) — Operação ganha o MESMO filtro por tema que o
          Feed do Gestão (_eleicoesTipoDe/_eleicoesFeedTipoMatch, mesmos rótulos/ordem/regra de
@@ -6265,6 +6266,11 @@ body.copiloto-aprendizado-on #elxAprendizadoBtn{display:flex}
     <!-- v120.48 (dono 28/09): checkbox fora da faixa de abas (que rola e o escondia) — sempre visível ao lado de Urgentes -->
     <label class="elx-feed-checkbox-raio" for="elxFeedSoAtivoRaio">
       <input type="checkbox" id="elxFeedSoAtivoRaio" onchange="_eleicoesSetFeedSoAtivoRaio(this.checked)"> Só c/ ativo no raio
+    </label>
+    <!-- v120.57 (pedido do dono 01/10) — "Só perto dos prédios estratégicos": mesma regra do Checkpoint
+         (n.predios_perto do /news, NOC-D v9.12 → noc_predios_perto no banco). -->
+    <label class="elx-feed-checkbox-raio" for="elxFeedSoPredios" title="Só notícias perto dos prédios e locais estratégicos (RJOAM, SPOMB, SPOIG, CASTS, BHEES, Ed. Claro) — mesma regra do Checkpoint">
+      <input type="checkbox" id="elxFeedSoPredios" onchange="_eleicoesSetFeedSoPredios(this.checked)"> Só perto dos prédios estratégicos
     </label>
     <select id="feedOrdem" class="elx-feed-ordem-sel" title="Urgentes: CRÍTICO primeiro, empate pela mais recente" aria-label="Ordenar ocorrências">
       <option value="urgentes" title="Urgentes — CRÍTICO primeiro, empate pela mais recente">Urgentes</option>
@@ -6561,6 +6567,9 @@ body.copiloto-aprendizado-on #elxAprendizadoBtn{display:flex}
         <label class="relop-1clique-raio">
           <input type="checkbox" id="relOp1cliqueSoAtivoRaio"> Só c/ ativo no raio
         </label>
+        <label class="relop-1clique-raio"><!-- v120.57: so_perto_predios -->
+          <input type="checkbox" id="relOp1cliqueSoPredios"> Só perto dos prédios estratégicos
+        </label>
       </div>
       <div class="relop-erro-inline" id="relOp1cliqueErro" style="display:none"></div>
     </div>
@@ -6661,6 +6670,11 @@ body.copiloto-aprendizado-on #elxAprendizadoBtn{display:flex}
         <div class="relop-fgroup">
           <label style="text-transform:none;letter-spacing:0;font-weight:500;display:flex;align-items:center;gap:6px;white-space:nowrap;cursor:pointer">
             <input type="checkbox" id="relOpFSoAtivoRaio"> Só c/ ativo no raio
+          </label>
+        </div>
+        <div class="relop-fgroup"><!-- v120.57: so_perto_predios (servidor: noc_rel_escopo) -->
+          <label style="text-transform:none;letter-spacing:0;font-weight:500;display:flex;align-items:center;gap:6px;white-space:nowrap;cursor:pointer">
+            <input type="checkbox" id="relOpFSoPredios"> Só perto dos prédios estratégicos
           </label>
         </div>
         <div class="relop-fgroup relop-fgroup-secoes">
@@ -8384,6 +8398,7 @@ const S = {
   // renderFeed()/addEventPins()/contadores das abas; _eleicoesSevFiltroUF() lê S.items direto
   // (não passa por getFiltered()) e por isso tem o mesmo check replicado nela.
   feedSoAtivoRaio:false,
+  feedSoPredios:false, // v120.57 — "Só perto dos prédios estratégicos" do Feed (Gestão)
   /* === ELEICOES: bloco 60/N (v120.42, 28/09) — camada "Apuração dos votos"
      (spec-apuracao-2026-09-28.md, contrato CONGELADO). S.apuracao guarda SÓ o último snapshot
      que o endpoint devolveu — nenhuma tela calcula/inventa número, todas leem daqui.
@@ -8403,7 +8418,7 @@ const S = {
      fictício de ERB/equipe (Regra 4 da Task 6). */
   filaTab:'NOVO',
   filaSelecionado:null,
-  filaFiltros:{criticidade:'',uf:'',frente:'',soAtivo:false},
+  filaFiltros:{criticidade:'',uf:'',frente:'',soAtivo:false,soPredios:false}, // v120.57: + soPredios
   filaMiniMap:null,
   filaMiniMapRO:null, // v120.37 — ResizeObserver do mini-mapa do detalhe (invalidateSize ao mudar de tamanho, corrige tiles cinza)
   kpiAlertasHoje:0,
@@ -10096,6 +10111,7 @@ function getFiltered(){
   // Suspenso durante "Ver só as novas" (branch S._respChegadaFiltro acima já retornou antes de
   // chegar aqui) — mesmo racional do feedTipoFiltro.
   if(S.feedSoAtivoRaio)items=items.filter(n=>Array.isArray(n.proximidade)&&n.proximidade.length>0);
+  if(S.feedSoPredios)items=items.filter(n=>Array.isArray(n.predios_perto)&&n.predios_perto.length>0); // v120.57
   items=_aiFiltroAplicar(items); // v120.46 — "Filtrar no painel" do Agente, AND com os demais
   // v120.29 (C) — idem: _elxOrdenar(items,S.ordem) substitui o sort ad-hoc por S.sort.
   return _elxOrdenar(items,S.ordem);
@@ -10213,6 +10229,11 @@ function _eleicoesSetFeedSoAtivoRaio(checked){
   S.feedSoAtivoRaio=!!checked;
   renderFeed();
 }
+// v120.57 (pedido do dono 01/10) — "Só perto dos prédios estratégicos" do Feed, mesmo padrão do checkbox acima.
+function _eleicoesSetFeedSoPredios(checked){
+  S.feedSoPredios=!!checked;
+  renderFeed();
+}
 function _eleicoesSyncSidebarEstadoBtns(){
   document.querySelectorAll('#filtrosOverlay .fo-group-estado .mf-btn').forEach(b=>{
     const oc=b.getAttribute('onclick')||'';
@@ -10300,6 +10321,16 @@ function _elxEventoChipHtml(n){
    dois critérios aparece por vez (nunca os dois juntos no card): proximidade
    (geofence por raio) tem prioridade sobre proximidade_area (área do aviso
    oficial georreferenciado), que só existe quando a fonte tem area_ibge. */
+/* v120.57 (pedido do dono 01/10) — selo do prédio/local estratégico perto do fato (n.predios_perto do /news,
+   NOC-D v9.12; regra do Checkpoint). dist_m nulo = acusado pela cerca do ativo do prédio (sem distância precisa). */
+function _elxPredioDist(m){return m==null?'na área':(m<1000?Math.round(m)+' m':(m/1000).toFixed(1).replace('.',',')+' km');}
+function _elxPrediosChipHtml(n){
+  const l=Array.isArray(n.predios_perto)?n.predios_perto.filter(p=>p&&p.sigla):[];
+  if(!l.length)return'';
+  const p=l[0], mais=l.length>1?` +${l.length-1}`:'';
+  const tit=l.map(x=>x.sigla+' ('+_elxPredioDist(x.dist_m)+')').join(', ');
+  return`<span class="elx-ativos-chip elx-predio-chip" title="Perto de prédio/local estratégico: ${eleWaEsc(tit)}">🏢 ${eleWaEsc(p.sigla)} · ${eleWaEsc(_elxPredioDist(p.dist_m))}${mais}</span>`;
+}
 function _elxAtivosChipHtml(n){
   if(Array.isArray(n.proximidade)&&n.proximidade.length){
     const q=n.proximidade.length;
@@ -10721,6 +10752,7 @@ function _eleicoesFeedCardHtml(n){
         ${n.previsto&&n.vigencia_inicio?`<span class="elx-previsto-chip" title="Aviso ainda não vigente — prioridade rebaixada até começar">Previsto · a partir de ${eleWaEsc(_elxDataHora(n.vigencia_inicio))}</span>`:''}
         ${_elxEventoChipHtml(n)}
         ${_elxAtivosChipHtml(n)}
+        ${_elxPrediosChipHtml(n)}
         ${_elxViasChipHtml(n)}
         ${_eleicoesStatusChipHtml(n)}
       </div>
@@ -11872,7 +11904,8 @@ function _eleicoesSevFiltroUF(uf){
   // v120.45 (item 1) — "Só c/ ativo no raio" entra no mesmo destaque de UF que severidade/tipo
   // (esta função não passa por getFiltered(), lê S.items direto — precisa do check replicado).
   const soRaio=!!S.feedSoAtivoRaio;
-  if(!temSev&&!tipo&&!soRaio)return undefined;
+  const soPredios=!!S.feedSoPredios; // v120.57
+  if(!temSev&&!tipo&&!soRaio&&!soPredios)return undefined;
   let max=null;
   (S.items||NEWS).forEach(n=>{
     if(n.estado!==uf||!_eleicoesItemAtivo(n))return;
@@ -11880,6 +11913,7 @@ function _eleicoesSevFiltroUF(uf){
     if(!(n.prioridade in PRIO_ORDER))return;
     if(tipo&&!_eleicoesFeedTipoMatch(n,tipo))return; // v120.43 — 'alerta' (item 3) e v120.42 — 'apuracao' entram no mesmo destaque, via _eleicoesFeedTipoMatch unificado
     if(soRaio&&!(Array.isArray(n.proximidade)&&n.proximidade.length>0))return;
+    if(soPredios&&!(Array.isArray(n.predios_perto)&&n.predios_perto.length>0))return; // v120.57
     if(max===null||PRIO_ORDER[n.prioridade]<PRIO_ORDER[max])max=n.prioridade;
   });
   return max;
@@ -21064,6 +21098,7 @@ function filaGetFiltered(tab,opts){
   if(f.uf)items=items.filter(n=>n.estado===f.uf);
   if(f.frente)items=items.filter(n=>_eleicoesFrenteDe(n)===f.frente);
   if(f.soAtivo)items=items.filter(n=>Array.isArray(n.proximidade)&&n.proximidade.length>0);
+  if(f.soPredios)items=items.filter(n=>Array.isArray(n.predios_perto)&&n.predios_perto.length>0); // v120.57
   // v120.43 (item 2, pedido do dono 28/09) — chip de tema (mesmo campo f.tema, setado por
   // filaSetTema()). opts.ignorarTema pula ESTE filtro sozinho — usado pelos próprios contadores
   // dos chips (_elxFilaTemaContagem), que precisam do "resto" da fila (status+crit+UF+frente+só
@@ -21165,7 +21200,7 @@ function renderFila(){
     const relLabel=fmtRelTime(n.discovered_at);
     const sel=S.filaSelecionado===n.id?' on':'';
     return `<div class="fila-item prio-${n.prioridade}${sel}" onclick="abrirDetalheOcorrencia('${n.id}')">
-      <div class="fila-item-top"><span class="fc-badge ${n.prioridade}">${n.prioridade}</span><span>${_eleicoesUfLabel(n.estado)}</span>${_elxXChipHtml(n)}${showStatus?_eleicoesStatusChipHtml(n):''}</div>
+      <div class="fila-item-top"><span class="fc-badge ${n.prioridade}">${n.prioridade}</span><span>${_eleicoesUfLabel(n.estado)}</span>${_elxXChipHtml(n)}${_elxPrediosChipHtml(n)}${showStatus?_eleicoesStatusChipHtml(n):''}</div>
       <div class="fila-item-title">${diamante}${_rrEsc(n.title||'')}</div>
       ${_elxProximidadeLinhaHtml(n)}
       <div class="fila-item-meta"><span>${relLabel}</span><span>${eleWaEsc(n.source_name||'')}</span></div>
@@ -22680,6 +22715,7 @@ function _respChegadaFiltrosSuspensosTexto(){
     if(f.uf)partes.push('UF');
     if(f.frente)partes.push('Frente');
     if(f.soAtivo)partes.push('só c/ ativo');
+    if(f.soPredios)partes.push('só prédios'); // v120.57
   }else{
     if(S.filters&&S.filters.estados&&S.filters.estados.size)partes.push('Estado');
     if(S.filters&&S.filters.prioridades&&S.filters.prioridades.size)partes.push('Severidade');
@@ -23192,6 +23228,7 @@ function _relopFiltrosPadrao(){
        (sessionStorage de antes desta versão) não têm a chave; Object.assign com este padrão
        em _relopInit() preenche o valor ausente com false, então nunca fica undefined. */
     so_ativo_no_raio:false,
+    so_perto_predios:false, // v120.57
     secoes:['noticias','recomendacoes','decisoes','acoes','comunicacoes','resultados','severidade_hist','evidencias']};
 }
 
@@ -23397,6 +23434,7 @@ function _relopMontarFiltrosUI(){
   if(g('relOpFMunicipio'))g('relOpFMunicipio').value=f.municipio||'';
   if(g('relOpFStatus'))g('relOpFStatus').value=f.status;
   if(g('relOpFSoAtivoRaio'))g('relOpFSoAtivoRaio').checked=!!f.so_ativo_no_raio;
+  if(g('relOpFSoPredios'))g('relOpFSoPredios').checked=!!f.so_perto_predios; // v120.57
   document.querySelectorAll('#relOpFSecoes input[type=checkbox]').forEach(cb=>{
     cb.checked=f.secoes.indexOf(cb.value)>=0;
   });
@@ -23431,6 +23469,7 @@ function _relopAtualizarContagemMaisFiltros(){
   if(f.tipos&&f.tipos.length)n++;
   if(f.secoes&&f.secoes.length!==padrao.secoes.length)n++;
   if(f.so_ativo_no_raio)n++; // item 2, v120.41
+  if(f.so_perto_predios)n++; // v120.57
   const badge=g('relOpMaisFiltrosCount');
   if(badge){ badge.style.display=n>0?'':'none'; badge.textContent=String(n); }
 }
@@ -23540,7 +23579,8 @@ function _relopLerFiltrosForm(){
     status:(g('relOpFStatus')||{}).value||'TODOS',
     tipos,
     secoes:secoes.length?secoes:_relopFiltrosPadrao().secoes,
-    so_ativo_no_raio:!!(g('relOpFSoAtivoRaio')||{}).checked // item 2, v120.41 — única chave nova
+    so_ativo_no_raio:!!(g('relOpFSoAtivoRaio')||{}).checked, // item 2, v120.41
+    so_perto_predios:!!(g('relOpFSoPredios')||{}).checked // v120.57
   };
 }
 function _relopAplicarFiltros(){
@@ -23914,6 +23954,7 @@ function _relopResumoFiltrosTexto(filtrosOverride,rotuloPeriodoOverride){
   partes.push(RELOP_ROTULO_STATUS[f.status]||f.status);
   if(f.tipos&&f.tipos.length)partes.push(f.tipos.length+' tipo(s)');
   if(f.so_ativo_no_raio)partes.push('Só c/ ativo no raio'); // item 2, v120.41
+  if(f.so_perto_predios)partes.push('Só perto dos prédios estratégicos'); // v120.57
   return partes.join(' · ');
 }
 async function _relopGerarPdf(){
@@ -23987,11 +24028,11 @@ function _relop1cliqueLimparErro(){
   const erroEl=document.getElementById('relOp1cliqueErro');
   if(erroEl)erroEl.style.display='none';
 }
-function _relop1cliqueFiltros(tipo,local,soAtivoRaio){
+function _relop1cliqueFiltros(tipo,local,soAtivoRaio,soPredios){
   return {periodo:_relop1cliquePeriodo(tipo),severidade:'CRITICO+ALTO',regiao:'BR',
     uf:local.uf,municipio:local.municipio,status:'TODOS',tipos:[],
     secoes:_relopFiltrosPadrao().secoes,
-    so_ativo_no_raio:!!soAtivoRaio}; // item 2, v120.41
+    so_ativo_no_raio:!!soAtivoRaio,so_perto_predios:!!soPredios}; // item 2, v120.41; v120.57 so_perto_predios
 }
 async function _relop1cliqueGerar(tipo){
   const local=_relop1cliqueResolverLocal();
@@ -24004,7 +24045,8 @@ async function _relop1cliqueGerar(tipo){
   // item 2, v120.41 — toggle próprio do bloco 1 clique (não passa por S.rel.filtros, ver
   // comentário do módulo acima); lido aqui, na hora de montar o payload.
   const soAtivoRaio=!!(document.getElementById('relOp1cliqueSoAtivoRaio')||{}).checked;
-  const filtros=_relop1cliqueFiltros(tipo,local,soAtivoRaio);
+  const soPredios=!!(document.getElementById('relOp1cliqueSoPredios')||{}).checked; // v120.57
+  const filtros=_relop1cliqueFiltros(tipo,local,soAtivoRaio,soPredios);
   const rotuloPeriodo=RELOP_1CLIQUE_ROTULO[tipo]||tipo;
   const ok=await nocConfirmar('Gerar relatório PDF com os filtros: '+_relopResumoFiltrosTexto(filtros,rotuloPeriodo)+'?',
     {titulo:'Gerar relatório PDF',okLabel:'Gerar PDF'});
