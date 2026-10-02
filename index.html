@@ -21216,6 +21216,18 @@ function renderFila(){
 }
 
 function abrirDetalheOcorrencia(id){
+  /* v120.59 (02/10, exceção ao congelamento aprovada pelo dono) — "Abrir ocorrência" não fazia nada na tela de
+     GESTÃO: o detalhe abria dentro de #eleicoesFilaPanel, que é .so-operacional (escondido no perfil estratégico).
+     Vale para os 3 chamadores (aviso de proximidade e aviso de CRÍTICO no Agente, botão do alerta de CRÍTICO).
+     Gestão (ou Fila invisível) → janela de detalhe do feed (openModal, a mesma dos Relatórios). Ocorrência fora do
+     feed atual (vencida/tratada/fora do escopo) → avisa em vez de falhar em silêncio. Operação: inalterado. */
+  const _item0=(S.items||[]).find(n=>n.id===id);
+  if(!_item0){ showToast('Ocorrência fora do feed atual (vencida, tratada ou fora do escopo).','var(--warn)'); return; }
+  const _fila=document.getElementById('eleicoesFilaPanel');
+  if(document.body.classList.contains('perfil-estrategico')||!_fila||_fila.offsetParent===null){
+    if(typeof openModal==='function')openModal(id);
+    return;
+  }
   // v120.27 — item x troca pra aba 𝕏 sozinho (spec Painel v120.27), independente de qual aba
   // o chamador já tinha setado antes (crítico flutuante, popover "Críticos recentes" etc.
   // sempre chamam filaSetTab('NOVO'/status) antes desta função — ver filaFloatVer/
