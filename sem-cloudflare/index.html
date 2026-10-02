@@ -4998,6 +4998,9 @@ body:has(#elxCritPop[style*="flex"]) .resp-chegada-selo{display:none!important}
 .elx-wa-selo{font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:var(--radius-pill);white-space:nowrap;
   background:rgba(37,211,102,.12);border:1px solid rgba(37,211,102,.45);color:#1a8f47}
 .eleicoes-wa-btn.wa-travado{opacity:.55;cursor:not-allowed;filter:grayscale(.6)}
+/* v120.61 (02/10) — notícia que chegou mais de 1 h depois de publicada: selo (sem WhatsApp automático, C v2.7). */
+.elx-atraso-selo{font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:var(--radius-pill);white-space:nowrap;
+  background:rgba(148,163,184,.14);border:1px solid rgba(148,163,184,.5);color:var(--text-muted)}
 
 /* ── Diálogo de confirmação genérico (nocConfirmar) — reusado também como único diálogo do
    fluxo "Enviar por WhatsApp" (Step 5): a mensagem já lista os destinatários por nome, sem
@@ -10767,6 +10770,7 @@ function _eleicoesFeedCardHtml(n){
         ${_elxViasChipHtml(n)}
         ${_eleicoesStatusChipHtml(n)}
         ${_elxWaSeloHtml(n)}
+        ${_elxAtrasoSeloHtml(n)}
       </div>
     </div>
   </div>`;
@@ -21213,7 +21217,7 @@ function renderFila(){
     const relLabel=fmtRelTime(n.discovered_at);
     const sel=S.filaSelecionado===n.id?' on':'';
     return `<div class="fila-item prio-${n.prioridade}${sel}" onclick="abrirDetalheOcorrencia('${n.id}')">
-      <div class="fila-item-top"><span class="fc-badge ${n.prioridade}">${n.prioridade}</span><span>${_eleicoesUfLabel(n.estado)}</span>${_elxXChipHtml(n)}${_elxPrediosChipHtml(n)}${showStatus?_eleicoesStatusChipHtml(n):''}${_elxWaSeloHtml(n)}</div>
+      <div class="fila-item-top"><span class="fc-badge ${n.prioridade}">${n.prioridade}</span><span>${_eleicoesUfLabel(n.estado)}</span>${_elxXChipHtml(n)}${_elxPrediosChipHtml(n)}${showStatus?_eleicoesStatusChipHtml(n):''}${_elxWaSeloHtml(n)}${_elxAtrasoSeloHtml(n)}</div>
       <div class="fila-item-title">${diamante}${_rrEsc(n.title||'')}</div>
       ${_elxProximidadeLinhaHtml(n)}
       <div class="fila-item-meta"><span>${relLabel}</span><span>${eleWaEsc(n.source_name||'')}</span></div>
@@ -22919,6 +22923,21 @@ function _elxWaTrava(n){
 function _elxWaTravaTexto(n){
   const b=_elxWaTrava(n); if(!b)return '';
   return `Já enviado a todos${b.ultimo_em?' em '+b.ultimo_em:''}${b.destinatarios?' ('+b.destinatarios+' contato'+(b.destinatarios===1?'':'s')+')':''}. Novo envio liberado${b.libera_em?' às '+b.libera_em:' em 3 h'} ou antes, se a situação piorar.`;
+}
+/* v120.61 (02/10, decisão do dono) — "Chegou atrasada": a fonte publicou e a notícia só entrou no painel mais de 1 h
+   depois (Google Notícias costuma entregar com atraso). Segue no painel, mas não dispara WhatsApp automático (C v2.7,
+   noc_config.alerta_idade_max_min = 60). Atraso = discovered_at − published_at, fixo (não muda com o relógio). */
+const ELX_ATRASO_MIN=60;
+function _elxAtrasoMin(n){
+  const p=Date.parse(n&&n.published_at||''), d=Date.parse(n&&n.discovered_at||'');
+  if(!isFinite(p)||!isFinite(d))return null;
+  const m=Math.round((d-p)/60000); return m>ELX_ATRASO_MIN?m:null;
+}
+function _elxAtrasoSeloHtml(n){
+  const m=_elxAtrasoMin(n); if(m==null)return '';
+  const txt=m>=1440?`${Math.floor(m/1440)}d${Math.floor((m%1440)/60)}h`:`${Math.floor(m/60)}h${String(m%60).padStart(2,'0')}`;
+  const tip=`Publicada pela fonte ${_elxDataHora(n.published_at)} e captada ${_elxDataHora(n.discovered_at)} (${txt} depois). Notícia atrasada não dispara WhatsApp automático.`;
+  return `<span class="elx-atraso-selo" title="${eleWaEsc(tip)}">⏱ Chegou atrasada · ${txt}</span>`;
 }
 function _elxWaSeloHtml(n){
   const b=_elxWaTrava(n); if(!b)return '';
