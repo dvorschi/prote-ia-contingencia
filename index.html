@@ -4521,6 +4521,13 @@ body.noc-eleicoes #feedList{display:flex;flex-direction:row;overflow-x:auto;over
   font-family:'Inter',sans-serif}
 .fila-tab b{font-weight:800;color:var(--text)}
 .fila-tab.on{color:var(--claro);border-bottom-color:var(--claro)}
+/* v120.58 (pedido do dono 01/10) — abas da Fila (Operação) mais legíveis: nome numa linha só (sem quebrar
+   "Em análise"), número em destaque embaixo, todas alinhadas; sino "Críticos recentes" fora da linha. */
+#eleicoesFilaPanel .fila-tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  padding:8px 2px 7px;white-space:nowrap;font-size:11px;letter-spacing:0;line-height:1.1}
+#eleicoesFilaPanel .fila-tab b{font-size:15px;line-height:1}
+body.copiloto-on #eleicoesFilaPanel .fila-tab-reco{display:flex}
+#filaCritRecentesBtn{display:none!important}
 /* v120.27 — indicador "ALTO não visto" na aba 𝕏 (spec Painel v120.27, item "ALTO não visto").
    Fundo roxo (mesmo #A78BFA/rgba do selo .elx-x-chip acima) + "!" — não pisca, não soa, só
    marca até o operador abrir a aba (removida em filaSetTab('X'), ver JS). Sem som/popup —
@@ -5954,7 +5961,7 @@ body.copiloto-aprendizado-on #elxAprendizadoBtn{display:flex}
              mantida aqui por instrução explícita da spec) + fila-tab-reco (display:none por
              padrão, só aparece com body.copiloto-on, ver CSS). filaSetTab() já é genérico
              (toggle por data-tab + renderFila()) — nenhuma mudança nele foi necessária. -->
-        <button class="fila-tab fila-tab-reco so-operacional" data-tab="RECOMENDACOES" onclick="filaSetTab('RECOMENDACOES')">Recomendações <b id="filaCountRECOMENDACOES">0</b></button>
+        <button class="fila-tab fila-tab-reco so-operacional" data-tab="RECOMENDACOES" onclick="filaSetTab('RECOMENDACOES')" title="Dicas da IA (Copiloto) para as ocorrências">Dicas IA <b id="filaCountRECOMENDACOES">0</b></button>
         <!-- === ELEICOES: v120.27 (Painel v120.27, spec-x-no-painel) — aba 𝕏, última. Fila
              (as 4 abas de status acima) fica só com notícias/oficiais; tweets classificados
              (camada==='x') vão pra cá em TODOS os status, com chip de status por item (ver
@@ -23891,7 +23898,7 @@ function _relopAbrirRecomendacoes(){
   if(tab&&typeof filaSetTab==='function'){
     filaSetTab('RECOMENDACOES');
   }else{
-    showToast('Aba de Recomendações do Copiloto indisponível nesta sessão.','var(--warn)');
+    showToast('Aba Dicas IA (Copiloto) indisponível nesta sessão.','var(--warn)');
   }
 }
 function _relopRenderDetalhe(){
@@ -23919,7 +23926,7 @@ function _relopRenderDetalhe(){
     html+=o.recomendacoes.map(r=>`<div class="relop-det-campo">🤖 <b>${eleWaEsc(r.rotulo||r.rec_origem)}</b>: ${eleWaEsc(r.texto||'não registrado')}<br><span style="color:var(--text-muted)">Decisão: ${eleWaEsc(_relopRotuloDecisao(r.decisao,r.decisao_rotulo))}${r.decidido_por&&r.decidido_por!=='não registrado'?' por '+eleWaEsc(r.decidido_por):''}${r.decidido_em?' em '+fmtDate(r.decidido_em):''}</span></div>`).join('');
     const pendente=o.recomendacoes.some(r=>!r.decisao||r.decisao==='PENDENTE'||r.decisao==='PROPOSTA'||r.decisao==='ADIAR_REC'||r.decisao==='ADIADA');
     if(pendente&&document.querySelector('[data-tab="RECOMENDACOES"]')){
-      html+='<a href="#" class="relop-det-link" onclick="_relopAbrirRecomendacoes();return false">Abrir em Recomendações →</a>';
+      html+='<a href="#" class="relop-det-link" onclick="_relopAbrirRecomendacoes();return false">Abrir em Dicas IA →</a>';
     }
   }
   html+='<div class="relop-secao-titulo">Linha do tempo</div>';
