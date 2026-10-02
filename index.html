@@ -4994,6 +4994,10 @@ body:has(#elxCritPop[style*="flex"]) .resp-chegada-selo{display:none!important}
 .eleicoes-wa-btn.fc-eleicoes-wa-btn{background:none;border:1px solid var(--border-s);border-radius:var(--radius-btn);
   color:var(--text-muted);font-size:12px;padding:2px 6px;cursor:pointer;margin-left:4px;flex-shrink:0}
 .eleicoes-wa-btn.fc-eleicoes-wa-btn:hover{border-color:var(--claro);color:var(--claro)}
+/* v120.60 (02/10) — trava de reenvio de WhatsApp por 3 h: selo no card/fila e botão travado (o clique explica). */
+.elx-wa-selo{font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:var(--radius-pill);white-space:nowrap;
+  background:rgba(37,211,102,.12);border:1px solid rgba(37,211,102,.45);color:#1a8f47}
+.eleicoes-wa-btn.wa-travado{opacity:.55;cursor:not-allowed;filter:grayscale(.6)}
 
 /* ── Diálogo de confirmação genérico (nocConfirmar) — reusado também como único diálogo do
    fluxo "Enviar por WhatsApp" (Step 5): a mensagem já lista os destinatários por nome, sem
@@ -10762,6 +10766,7 @@ function _eleicoesFeedCardHtml(n){
         ${_elxPrediosChipHtml(n)}
         ${_elxViasChipHtml(n)}
         ${_eleicoesStatusChipHtml(n)}
+        ${_elxWaSeloHtml(n)}
       </div>
     </div>
   </div>`;
@@ -10779,7 +10784,7 @@ function _eleicoesCardMenu(ev,id){
   pop.className='elx-card-menu-pop';
   pop.innerHTML=`
     <button onclick="_eleicoesVerNoMapa('${id}')">🗺️ Ver no mapa</button>
-    ${waHabilitado?`<button onclick="document.querySelectorAll('.elx-card-menu-pop').forEach(e=>e.remove());enviarOcorrenciaWhatsAppById('${id}')">📱 Enviar por WhatsApp</button>`:''}
+    ${waHabilitado?`<button${_elxWaTrava(n)?' class="wa-travado"':''} onclick="document.querySelectorAll('.elx-card-menu-pop').forEach(e=>e.remove());enviarOcorrenciaWhatsAppById('${id}')">${_elxWaTrava(n)?'🔒 Já enviado por WhatsApp':'📱 Enviar por WhatsApp'}</button>`:''}
     <button onclick="openModal('${id}')">↗ Abrir</button>`;
   const btn=ev.currentTarget;
   const rect=btn.getBoundingClientRect();
@@ -20080,7 +20085,8 @@ function _eleicoesStatusChipHtml(n){
   return `<span class="fc-eleicoes-chip">${ELEICOES_STATUS_LABEL[st]||st}${resp}${minTxt}</span>`;
 }
 function _eleicoesWaBtnHtml(n){
-  return `<button class="eleicoes-wa-btn fc-eleicoes-wa-btn" title="Enviar por WhatsApp" onclick="event.stopPropagation();enviarOcorrenciaWhatsAppById('${n.id}')">💬</button>`;
+  const t=_elxWaTrava(n);
+  return `<button class="eleicoes-wa-btn fc-eleicoes-wa-btn${t?' wa-travado':''}" title="${eleWaEsc(_elxWaTravaTexto(n)||'Enviar por WhatsApp')}" onclick="event.stopPropagation();enviarOcorrenciaWhatsAppById('${n.id}')">${t?'🔒':'💬'}</button>`;
 }
 /* ── v120.27: selo do X (spec Painel v120.27) — reusado em .fila-item (aba 𝕏) e em
    _eleicoesFeedCardHtml (perfil Gestão, só o selo, sem filtro/tab). n.tipo_fonte vem do /news
@@ -21207,7 +21213,7 @@ function renderFila(){
     const relLabel=fmtRelTime(n.discovered_at);
     const sel=S.filaSelecionado===n.id?' on':'';
     return `<div class="fila-item prio-${n.prioridade}${sel}" onclick="abrirDetalheOcorrencia('${n.id}')">
-      <div class="fila-item-top"><span class="fc-badge ${n.prioridade}">${n.prioridade}</span><span>${_eleicoesUfLabel(n.estado)}</span>${_elxXChipHtml(n)}${_elxPrediosChipHtml(n)}${showStatus?_eleicoesStatusChipHtml(n):''}</div>
+      <div class="fila-item-top"><span class="fc-badge ${n.prioridade}">${n.prioridade}</span><span>${_eleicoesUfLabel(n.estado)}</span>${_elxXChipHtml(n)}${_elxPrediosChipHtml(n)}${showStatus?_eleicoesStatusChipHtml(n):''}${_elxWaSeloHtml(n)}</div>
       <div class="fila-item-title">${diamante}${_rrEsc(n.title||'')}</div>
       ${_elxProximidadeLinhaHtml(n)}
       <div class="fila-item-meta"><span>${relLabel}</span><span>${eleWaEsc(n.source_name||'')}</span></div>
@@ -21304,7 +21310,7 @@ function renderFilaDetail(item){
         <button class="fila-btn" data-fila-acao="TRATAR" ${st!=='EM_ANALISE'?'disabled':''} onclick="tratarOcorrencia('${item.id}','TRATADO')">Marcar tratado</button>
         <button class="fila-btn" ${st!=='TRATADO'?'disabled':''} onclick="filaEncerrar('${item.id}')">Encerrar</button>
         <button class="fila-btn fila-btn-descartar" data-fila-acao="DESCARTAR" ${['ENCERRADO','DESCARTADO'].includes(st)?'disabled':''} onclick="filaDescartar('${item.id}')">Descartar</button>
-        <button class="fila-btn eleicoes-wa-btn" onclick="enviarOcorrenciaWhatsAppById('${item.id}')">💬 Enviar por WhatsApp</button>
+        <button class="fila-btn eleicoes-wa-btn${_elxWaTrava(item)?' wa-travado':''}" title="${eleWaEsc(_elxWaTravaTexto(item)||'Enviar por WhatsApp')}" onclick="enviarOcorrenciaWhatsAppById('${item.id}')">${_elxWaTrava(item)?'🔒 Já enviado por WhatsApp':'💬 Enviar por WhatsApp'}</button>
       </div>
       <textarea class="fila-textarea" id="filaObs" placeholder="Observação (opcional, obrigatória para Descartar)"></textarea>
       <select class="fila-select" id="filaDesfecho">
@@ -22899,9 +22905,44 @@ async function eleWaCarregarContatos(){
   const j=await r.json();
   return Array.isArray(j)?j.filter(c=>c&&c.id):[];
 }
+/* v120.60 (02/10, pedido do dono) — trava de reenvio por 3 h. Fonte: wa_bloqueio do /news (D v9.13), que é a MESMA
+   regra que o servidor aplica no envio (NOC-F v2.5 responde 409): mesma notícia ou mesma ocorrência enviada com sucesso
+   (manual ou automático) nas últimas 3 h, sem piora depois disso. Passadas as 3 h (libera_ts, conferido aqui no
+   relógio) ou com piora (o servidor manda bloqueado=false), o botão volta. Outra ocorrência do mesmo UF e tipo só pede
+   confirmação (mesmo_tema). Sem o campo (ex.: post do X fora do feed), o servidor decide no envio. */
+function _elxWaTrava(n){
+  const b=n&&n.wa_bloqueio;
+  if(!b||b.bloqueado!==true)return null;
+  const t=Date.parse(b.libera_ts||'');
+  return (isFinite(t)&&Date.now()>=t)?null:b;
+}
+function _elxWaTravaTexto(n){
+  const b=_elxWaTrava(n); if(!b)return '';
+  return `Já enviado a todos${b.ultimo_em?' em '+b.ultimo_em:''}${b.destinatarios?' ('+b.destinatarios+' contato'+(b.destinatarios===1?'':'s')+')':''}. Novo envio liberado${b.libera_em?' às '+b.libera_em:' em 3 h'} ou antes, se a situação piorar.`;
+}
+function _elxWaSeloHtml(n){
+  const b=_elxWaTrava(n); if(!b)return '';
+  const h=String(b.ultimo_em||'').replace(/^.*às\s*/,'');
+  return `<span class="elx-wa-selo" title="${eleWaEsc(_elxWaTravaTexto(n))}">📲 WhatsApp enviado${h?' '+eleWaEsc(h):''}</span>`;
+}
+function _elxWaRerender(){
+  try{renderFeed();}catch(_){}
+  try{renderFila();}catch(_){}
+  try{const it=S.filaSelecionado&&(S.items||[]).find(x=>x.id===S.filaSelecionado); if(it)renderFilaDetail(it);}catch(_){}
+}
 async function enviarOcorrenciaWhatsApp(item){
   if(!item)return;
   if(!nocPode('whatsapp.enviar_manual')){showToast('Sem permissão para envio manual de WhatsApp.','var(--critico)');return;}
+  { const vivo=(S.items||[]).find(n=>n.id===item.id)||item;
+    if(_elxWaTrava(vivo)){ await nocConfirmar(_elxWaTravaTexto(vivo),{titulo:'WhatsApp já enviado',okLabel:'Entendi',soOk:true}); return; }
+    const mt=vivo.wa_bloqueio&&vivo.wa_bloqueio.mesmo_tema;
+    if(mt){
+      const fam=mt.familia==='BOMBA'?'bomba':String(mt.familia||'').toLowerCase();
+      const segue=await nocConfirmar(`Já houve aviso por WhatsApp de ${fam} em ${_eleicoesUfLabel(vivo.estado)||vivo.estado}${mt.ultimo_em?' em '+mt.ultimo_em:''}: "${mt.titulo||''}". Esta notícia é outro fato?`,
+        {titulo:'Possível repetição',okLabel:'É outro fato, continuar'});
+      if(!segue)return;
+    }
+  }
   try{ ELE_WA.contatos=await eleWaCarregarContatos(); }
   catch(e){ showToast('Não foi possível carregar os destinatários.','var(--critico)'); return; }
   ELE_WA.item=item; ELE_WA.sel=new Set(); ELE_WA.enviando=false;
@@ -22984,7 +23025,15 @@ async function eleWaEnviar(){
       body:JSON.stringify({origem:'manual',template:item.prioridade==='CRITICO'?'noc_alerta_critico':'noc_alerta_ocorrencia',
         news_id:item.id,destinatarios:ids,autorizado_por:NOC_SESSAO.login})});
     const j=await r.json().catch(()=>({}));
-    if(!r.ok||j.ok===false){showToast(j.erro?('Envio não realizado: '+j.erro):'Canal WhatsApp indisponível.','var(--critico)');return;}
+    if(r.status===409&&j.erro==='ja_enviado_3h'){ // v120.60: o servidor travou (outro operador enviou antes, aba antiga etc.)
+      const alvo=(S.items||[]).find(n=>n.id===item.id)||item;
+      const lib=new Date(Date.now()+3*3600000).toISOString(); // sem a hora exata do servidor, o selo vale até o próximo /news
+      alvo.wa_bloqueio=item.wa_bloqueio={bloqueado:true,ultimo_em:j.ultimo_em,libera_em:j.libera_em,destinatarios:j.destinatarios,libera_ts:lib};
+      eleWaFechar(); _elxWaRerender();
+      await nocConfirmar(j.mensagem||_elxWaTravaTexto(alvo),{titulo:'WhatsApp já enviado',okLabel:'Entendi',soOk:true});
+      return;
+    }
+    if(!r.ok||j.ok===false){showToast(j.mensagem||(j.erro?('Envio não realizado: '+j.erro):'Canal WhatsApp indisponível.'),'var(--critico)');return;}
     const env=Number(j.enviados)||0, fal=Number(j.falhas)||0;
     showToast(fal?`Enviado para ${env}, falhou para ${fal}`:`Enviado para ${env} contato${env!==1?'s':''}`,fal?'var(--alto)':'var(--medio)');
     S.kpiAlertasHoje=(S.kpiAlertasHoje||0)+env;
@@ -22996,6 +23045,12 @@ async function eleWaEnviar(){
       alvo.wa_aviso=item.wa_aviso={enviado:true,ultimo_em:`${p2(agora.getUTCDate())}/${p2(agora.getUTCMonth()+1)} às ${p2(agora.getUTCHours())}h${p2(agora.getUTCMinutes())}`,
         destinatarios:(ant?Number(ant.destinatarios)||0:0)+env,origens:[...new Set([...(ant&&ant.origens||[]),'manual'])]};
       try{_elxAgenteScanCriticos();}catch(_){}
+      // v120.60: trava local imediata (o /news confirma em seguida com a hora do servidor)
+      const lib=new Date(Date.now()+3*3600000);
+      const hb=x=>{const d=new Date(x.getTime()-3*3600000);return `${p2(d.getUTCHours())}h${p2(d.getUTCMinutes())}`;};
+      alvo.wa_bloqueio=item.wa_bloqueio={bloqueado:true,ultimo_em:alvo.wa_aviso.ultimo_em,libera_em:hb(lib),
+        destinatarios:Number(alvo.wa_aviso.destinatarios)||env,libera_ts:lib.toISOString()};
+      _elxWaRerender();
     }
     eleWaFechar();
   }catch(e){
@@ -23035,6 +23090,7 @@ function nocConfirmar(mensagem,opts){
     titleEl.textContent=opts.titulo||'Confirmar';
     msgEl.textContent=mensagem;
     okBtn.textContent=opts.okLabel||'Confirmar';
+    cancelBtn.style.display=opts.soOk?'none':''; // v120.60: aviso informativo (só "Entendi")
     modal.style.display='flex';
     function cleanup(result){
       modal.style.display='none';
