@@ -4999,6 +4999,22 @@ body:has(#elxCritPop[style*="flex"]) .resp-chegada-selo{display:none!important}
   background:rgba(37,211,102,.12);border:1px solid rgba(37,211,102,.45);color:#1a8f47}
 .eleicoes-wa-btn.wa-travado{opacity:.55;cursor:not-allowed;filter:grayscale(.6)}
 /* v120.61 (02/10) — notícia que chegou mais de 1 h depois de publicada: selo (sem WhatsApp automático, C v2.7). */
+/* v120.62 (02/10, pedido do dono) — notícia já tratada/encerrada/descartada pelo operador: card "desligado" no feed
+   (selo de nível segue colorido; acende no hover) e faixa de situação no topo da notícia aberta. */
+.elx-card.elx-card-tratada .elx-card-bar,.elx-card.elx-card-tratada .elx-card-title,.elx-card.elx-card-tratada .elx-card-summary,
+.elx-card.elx-card-tratada .elx-card-footer,.elx-card.elx-card-tratada .elx-card-uf,.elx-card.elx-card-tratada .elx-card-time,
+.elx-card.elx-card-tratada .elx-prox-linha{opacity:.42;transition:opacity .15s}
+.elx-card.elx-card-tratada:hover .elx-card-bar,.elx-card.elx-card-tratada:hover .elx-card-title,.elx-card.elx-card-tratada:hover .elx-card-summary,
+.elx-card.elx-card-tratada:hover .elx-card-footer,.elx-card.elx-card-tratada:hover .elx-card-uf,.elx-card.elx-card-tratada:hover .elx-card-time,
+.elx-card.elx-card-tratada:hover .elx-prox-linha{opacity:1}
+.elx-card.elx-card-tratada{background:var(--bg-panel)}
+.modal-trat-faixa{display:flex;flex-direction:column;gap:3px;border-radius:10px;padding:9px 12px;margin:0 0 12px;font-size:13px;font-weight:600;border:1px solid}
+.modal-trat-faixa small{font-weight:500;color:var(--text-muted);font-size:12px}
+.modal-trat-faixa.st-EM_ANALISE{background:rgba(245,158,11,.10);border-color:rgba(245,158,11,.45);color:#d97706}
+.modal-trat-faixa.st-TRATADO{background:rgba(34,197,94,.10);border-color:rgba(34,197,94,.45);color:#16a34a}
+.modal-trat-faixa.st-ENCERRADO{background:rgba(148,163,184,.12);border-color:rgba(148,163,184,.5);color:var(--text)}
+.modal-trat-faixa.st-DESCARTADO{background:rgba(148,163,184,.12);border-color:rgba(148,163,184,.5);color:var(--text-muted)}
+.ma-btn.ma-wpp.wa-travado{opacity:.5;filter:grayscale(.7);cursor:not-allowed}
 .elx-atraso-selo{font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:var(--radius-pill);white-space:nowrap;
   background:rgba(148,163,184,.14);border:1px solid rgba(148,163,184,.5);color:var(--text-muted)}
 
@@ -6363,6 +6379,7 @@ body.copiloto-aprendizado-on #elxAprendizadoBtn{display:flex}
       <button class="modal-close" onclick="closeModal()" aria-label="Fechar">Fechar ✕</button>
     </div>
     <div class="modal-body">
+      <div class="modal-trat-faixa" id="modalTratFaixa" hidden></div><!-- v120.62: situação do tratamento no topo -->
       <div id="modalProx"></div><!-- v120.52: "⚠ a X km da estação/TRE" (mesma linha do operador) -->
       <p class="modal-summary" id="modalSummary"></p>
       <div class="elx-da-fonte" id="modalFonte" hidden><span class="elx-da-fonte-rot">Da fonte</span><span class="elx-da-fonte-txt" id="modalFonteTxt"></span></div>
@@ -10747,7 +10764,7 @@ function _eleicoesFeedCardHtml(n){
   // v120.36 — resumo cai pra 1 linha quando o card também mostra a linha ⚠ (ver CSS
   // .elx-card-summary-1l acima) — evita que os 2 juntos estourem o orçamento de altura do card.
   const proxHtml=_elxProximidadeLinhaHtml(n);
-  return`<div class="elx-card prio-${n.prioridade}" data-ai-card-id="${eleWaEsc(n.id)}" onclick="openModal('${n.id}')">
+  return`<div class="elx-card prio-${n.prioridade}${_elxTratadaStatus(n)?' elx-card-tratada':''}" data-ai-card-id="${eleWaEsc(n.id)}" onclick="openModal('${n.id}')">
     <div class="elx-card-bar"></div>
     <div class="elx-card-body">
       <div class="elx-card-hdr">
@@ -10788,7 +10805,7 @@ function _eleicoesCardMenu(ev,id){
   pop.className='elx-card-menu-pop';
   pop.innerHTML=`
     <button onclick="_eleicoesVerNoMapa('${id}')">🗺️ Ver no mapa</button>
-    ${waHabilitado?`<button${_elxWaTrava(n)?' class="wa-travado"':''} onclick="document.querySelectorAll('.elx-card-menu-pop').forEach(e=>e.remove());enviarOcorrenciaWhatsAppById('${id}')">${_elxWaTrava(n)?'🔒 Já enviado por WhatsApp':'📱 Enviar por WhatsApp'}</button>`:''}
+    ${waHabilitado?`<button${_elxWaTrava(n)?' class="wa-travado"':''} onclick="document.querySelectorAll('.elx-card-menu-pop').forEach(e=>e.remove());enviarOcorrenciaWhatsAppById('${id}')">${_elxWaTrava(n)?_elxWaBtnRotulo(n):'📱 Enviar por WhatsApp'}</button>`:''}
     <button onclick="openModal('${id}')">↗ Abrir</button>`;
   const btn=ev.currentTarget;
   const rect=btn.getBoundingClientRect();
@@ -14051,6 +14068,7 @@ function openModal(id){
     modalAtivosEl.innerHTML=`<div class="modal-contexto-title">${eleWaEsc(ativosSecao.titulo)}</div>${ativosSecao.rowsHtml}`;
   }
   document.getElementById('modalTratamentoChip').innerHTML=_eleicoesStatusChipHtml(item);
+  _elxModalTratFaixa(item); // v120.62: faixa de situação no topo + botão WhatsApp travado se tratada/encerrada
   /* Fix QA P1 (v115) — aviso de demonstração no modal de detalhe. Sem ele o
      item sintético abria com badge CRITICO, resumo e "⚡ Requer ação",
      idêntico a um evento real. Vem ANTES do "Requer ação" de propósito: é a
@@ -21314,7 +21332,7 @@ function renderFilaDetail(item){
         <button class="fila-btn" data-fila-acao="TRATAR" ${st!=='EM_ANALISE'?'disabled':''} onclick="tratarOcorrencia('${item.id}','TRATADO')">Marcar tratado</button>
         <button class="fila-btn" ${st!=='TRATADO'?'disabled':''} onclick="filaEncerrar('${item.id}')">Encerrar</button>
         <button class="fila-btn fila-btn-descartar" data-fila-acao="DESCARTAR" ${['ENCERRADO','DESCARTADO'].includes(st)?'disabled':''} onclick="filaDescartar('${item.id}')">Descartar</button>
-        <button class="fila-btn eleicoes-wa-btn${_elxWaTrava(item)?' wa-travado':''}" title="${eleWaEsc(_elxWaTravaTexto(item)||'Enviar por WhatsApp')}" onclick="enviarOcorrenciaWhatsAppById('${item.id}')">${_elxWaTrava(item)?'🔒 Já enviado por WhatsApp':'💬 Enviar por WhatsApp'}</button>
+        <button class="fila-btn eleicoes-wa-btn${_elxWaTrava(item)?' wa-travado':''}" title="${eleWaEsc(_elxWaTravaTexto(item)||'Enviar por WhatsApp')}" onclick="enviarOcorrenciaWhatsAppById('${item.id}')">${_elxWaTrava(item)?_elxWaBtnRotulo(item):'💬 Enviar por WhatsApp'}</button>
       </div>
       <textarea class="fila-textarea" id="filaObs" placeholder="Observação (opcional, obrigatória para Descartar)"></textarea>
       <select class="fila-select" id="filaDesfecho">
@@ -22914,14 +22932,34 @@ async function eleWaCarregarContatos(){
    (manual ou automático) nas últimas 3 h, sem piora depois disso. Passadas as 3 h (libera_ts, conferido aqui no
    relógio) ou com piora (o servidor manda bloqueado=false), o botão volta. Outra ocorrência do mesmo UF e tipo só pede
    confirmação (mesmo_tema). Sem o campo (ex.: post do X fora do feed), o servidor decide no envio. */
-function _elxWaTrava(n){
+/* v120.62 (02/10, pedido do dono) — notícia TRATADA/ENCERRADA/DESCARTADA pelo operador não é enviada por WhatsApp (nos 2
+   perfis; o servidor também recusa: noc_wa_bloqueio v2 + NOC-F v2.7 → 409 'ocorrencia_tratada'). Fonte: item.tratamento. */
+const ELX_ST_TRATADA=['TRATADO','ENCERRADO','DESCARTADO'];
+const ELX_ST_PART={TRATADO:'Tratada',ENCERRADO:'Encerrada',DESCARTADO:'Descartada',EM_ANALISE:'Em análise'};
+function _elxTratadaStatus(n){ const st=_eleicoesStatus(n); return ELX_ST_TRATADA.includes(st)?st:null; }
+function _elxDesfechoLabel(v){ const d=(ELEICOES_DESFECHOS||[]).find(x=>x[0]===v); return d?d[1]:(v||''); }
+function _elxTratTexto(n){
+  const st=_elxTratadaStatus(n); if(!st)return '';
+  const t=n.tratamento||{};
+  return `Ocorrência ${ELX_ST_PART[st].toLowerCase()}${t.responsavel?' por '+t.responsavel:''}${t.atualizado_em?' em '+_elxDataHora(t.atualizado_em):''} — não é enviada por WhatsApp.`;
+}
+function _elxWaTrava3h(n){
   const b=n&&n.wa_bloqueio;
-  if(!b||b.bloqueado!==true)return null;
+  if(!b||b.bloqueado!==true||b.motivo==='tratamento'||!b.ultimo_em)return null;
   const t=Date.parse(b.libera_ts||'');
   return (isFinite(t)&&Date.now()>=t)?null:b;
 }
+function _elxWaTrava(n){
+  if(_elxTratadaStatus(n))return {motivo:'tratamento'};
+  return _elxWaTrava3h(n);
+}
+function _elxWaBtnRotulo(n){
+  const st=_elxTratadaStatus(n); if(st)return `🔒 ${ELX_ST_PART[st]} — sem WhatsApp`;
+  return _elxWaTrava3h(n)?'🔒 Já enviado por WhatsApp':'';
+}
 function _elxWaTravaTexto(n){
-  const b=_elxWaTrava(n); if(!b)return '';
+  if(_elxTratadaStatus(n))return _elxTratTexto(n);
+  const b=_elxWaTrava3h(n); if(!b)return '';
   return `Já enviado a todos${b.ultimo_em?' em '+b.ultimo_em:''}${b.destinatarios?' ('+b.destinatarios+' contato'+(b.destinatarios===1?'':'s')+')':''}. Novo envio liberado${b.libera_em?' às '+b.libera_em:' em 3 h'} ou antes, se a situação piorar.`;
 }
 /* v120.61 (02/10, decisão do dono) — "Chegou atrasada": a fonte publicou e a notícia só entrou no painel mais de 1 h
@@ -22940,9 +22978,25 @@ function _elxAtrasoSeloHtml(n){
   return `<span class="elx-atraso-selo" title="${eleWaEsc(tip)}">⏱ Chegou atrasada · ${txt}</span>`;
 }
 function _elxWaSeloHtml(n){
-  const b=_elxWaTrava(n); if(!b)return '';
+  const b=_elxWaTrava3h(n); if(!b)return '';
   const h=String(b.ultimo_em||'').replace(/^.*às\s*/,'');
   return `<span class="elx-wa-selo" title="${eleWaEsc(_elxWaTravaTexto(n))}">📲 WhatsApp enviado${h?' '+eleWaEsc(h):''}</span>`;
+}
+function _elxModalTratFaixa(item){
+  const el=document.getElementById('modalTratFaixa'); if(!el)return;
+  const st=_eleicoesStatus(item), t=item&&item.tratamento||{};
+  if(st==='NOVO'){ el.hidden=true; el.innerHTML=''; }
+  else {
+    const quem=t.responsavel?` por ${eleWaEsc(t.responsavel)}`:'', quando=t.atualizado_em?` em ${eleWaEsc(_elxDataHora(t.atualizado_em))}`:'';
+    const desf=t.desfecho?` · Desfecho: ${eleWaEsc(_elxDesfechoLabel(t.desfecho))}`:'';
+    const ico={EM_ANALISE:'⏳',TRATADO:'✔',ENCERRADO:'✔',DESCARTADO:'✖'}[st]||'•';
+    el.className='modal-trat-faixa st-'+st; el.hidden=false;
+    el.innerHTML=`<span>${ico} ${eleWaEsc(ELX_ST_PART[st]||st)}${quem}${quando}${desf}</span>`+
+      (t.observacao?`<small>Observação do operador: ${eleWaEsc(t.observacao)}</small>`:'')+
+      (_elxTratadaStatus(item)?'<small>Não é enviada por WhatsApp.</small>':'');
+  }
+  const b=document.querySelector('#modal .ma-wpp');
+  if(b){ const tv=_elxWaTrava(item); b.classList.toggle('wa-travado',!!tv); b.textContent=tv?_elxWaBtnRotulo(item):'📱 WhatsApp'; b.title=tv?_elxWaTravaTexto(item):''; }
 }
 function _elxWaRerender(){
   try{renderFeed();}catch(_){}
@@ -22953,7 +23007,7 @@ async function enviarOcorrenciaWhatsApp(item){
   if(!item)return;
   if(!nocPode('whatsapp.enviar_manual')){showToast('Sem permissão para envio manual de WhatsApp.','var(--critico)');return;}
   { const vivo=(S.items||[]).find(n=>n.id===item.id)||item;
-    if(_elxWaTrava(vivo)){ await nocConfirmar(_elxWaTravaTexto(vivo),{titulo:'WhatsApp já enviado',okLabel:'Entendi',soOk:true}); return; }
+    if(_elxWaTrava(vivo)){ await nocConfirmar(_elxWaTravaTexto(vivo),{titulo:_elxTratadaStatus(vivo)?'WhatsApp bloqueado':'WhatsApp já enviado',okLabel:'Entendi',soOk:true}); return; }
     const mt=vivo.wa_bloqueio&&vivo.wa_bloqueio.mesmo_tema;
     if(mt){
       const fam=mt.familia==='BOMBA'?'bomba':String(mt.familia||'').toLowerCase();
@@ -23044,6 +23098,11 @@ async function eleWaEnviar(){
       body:JSON.stringify({origem:'manual',template:item.prioridade==='CRITICO'?'noc_alerta_critico':'noc_alerta_ocorrencia',
         news_id:item.id,destinatarios:ids,autorizado_por:NOC_SESSAO.login})});
     const j=await r.json().catch(()=>({}));
+    if(r.status===409&&j.erro==='ocorrencia_tratada'){ // v120.62: servidor recusou — operador tratou/encerrou nesse meio-tempo
+      eleWaFechar();
+      await nocConfirmar(j.mensagem||'Ocorrência já tratada pelo operador — não é enviada por WhatsApp.',{titulo:'WhatsApp bloqueado',okLabel:'Entendi',soOk:true});
+      return;
+    }
     if(r.status===409&&j.erro==='ja_enviado_3h'){ // v120.60: o servidor travou (outro operador enviou antes, aba antiga etc.)
       const alvo=(S.items||[]).find(n=>n.id===item.id)||item;
       const lib=new Date(Date.now()+3*3600000).toISOString(); // sem a hora exata do servidor, o selo vale até o próximo /news
